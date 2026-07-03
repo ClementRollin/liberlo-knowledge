@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, staging, main]
+  pull_request:
+    branches: [develop, staging, main]
+
+jobs:
+  backend-tests:
+    name: Backend — Tests & Build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: liberlo
+          POSTGRES_PASSWORD: liberlo_dev
+          POSTGRES_DB: liberlo_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: cd backend && npm ci
+
+      - name: Generate Prisma client
+        run: cd backend && npx prisma generate
+        env:
+          DATABASE_URL: postgresql://liberlo:liberlo_dev@localhost:5432/liberlo_test
+
+      - name: Run database migrations
+        run: cd backend && npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://liberlo:liberlo_dev@localhost:5432/liberlo_test
+
+      - name: Run unit tests
+        run: cd backend && npm run test -- --passWithNoTests
+        env:
+          DATABASE_URL: postgresql://liberlo:liberlo_dev@localhost:5432/liberlo_test
+          JWT_SECRET: ci_test_secret_only
+          JWT_EXPIRES_IN: 8h
+          OPENAI_API_KEY: sk-test-mock-key
+
+      - name: TypeScript compilation
+        run: cd backend && npm run build
+
+  frontend-build:
+    name: Frontend — TypeCheck & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+
+      - name: TypeCheck + Build
+        run: cd frontend && npm run build
+        env:
+          VITE_API_URL: http://localhost:3001

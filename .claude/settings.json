@@ -1,0 +1,11 @@
+{
+  "autoMemoryEnabled": true,
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npx prisma *)",
+      "Bash(npx vitest *)",
+      "Bash(npx vite *)"
+    ]
+  }
+}

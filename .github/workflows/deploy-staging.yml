@@ -1,0 +1,48 @@
+name: Deploy — Staging
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+jobs:
+  deploy-staging:
+    name: Deploy to staging environment
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install backend dependencies
+        run: cd backend && npm ci
+
+      - name: Generate Prisma client
+        run: cd backend && npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Run database migrations
+        run: cd backend && npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Build backend
+        run: cd backend && npm run build
+
+      - name: Build frontend
+        run: cd frontend && npm ci && npm run build
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+
+      # TODO: Ajouter ici les étapes de déploiement selon l'infrastructure choisie
+      # Exemples :
+      #   - SSH + rsync vers un VPS (avec secret SSH_PRIVATE_KEY)
+      #   - docker build + push + deploy (Railway, Render, Fly.io)
+      #   - Mise à jour d'un service systemd sur VPS
+      - name: Deploy (à configurer)
+        run: echo "Étapes de déploiement staging à configurer selon l'infrastructure"

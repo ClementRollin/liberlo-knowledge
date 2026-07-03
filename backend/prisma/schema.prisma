@@ -1,0 +1,78 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [pgvector(map: "vector")]
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  COLLABORATOR
+  RESPONSABLE
+  SUPER_ADMIN
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model User {
+  id              String   @id @default(uuid())
+  email           String   @unique
+  passwordHash    String
+  role            Role     @default(COLLABORATOR)
+  serviceId       String?
+  isActive        Boolean  @default(false)
+  activationToken String?  @unique
+  activationTokenExpiresAt DateTime?
+  createdAt       DateTime @default(now())
+
+  service  Service?  @relation(fields: [serviceId], references: [id])
+  articles Article[]
+
+  @@index([email])
+  @@index([serviceId])
+}
+
+model Service {
+  id          String  @id @default(uuid())
+  name        String
+  slug        String  @unique
+  description String?
+
+  users    User[]
+  articles Article[]
+
+  @@index([slug])
+}
+
+model Article {
+  id         String        @id @default(uuid())
+  title      String
+  content    String
+  summary    String?
+  type       String?
+  serviceId  String
+  visibility String        @default("SERVICE")
+  status     ArticleStatus @default(DRAFT)
+  tags       String[]
+  authorId   String
+  // Dimension 1536 — OpenAI text-embedding-3-small / ada-002 (à ajuster selon le modèle retenu)
+  embedding  Unsupported("vector(1536)")?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  service Service @relation(fields: [serviceId], references: [id])
+  author  User    @relation(fields: [authorId], references: [id])
+
+  @@index([serviceId])
+  @@index([authorId])
+  @@index([status])
+}
