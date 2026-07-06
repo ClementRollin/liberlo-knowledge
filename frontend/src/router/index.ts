@@ -18,66 +18,64 @@ const router = createRouter({
       meta: { public: true },
     },
 
-    // Auth requis
+    // Toutes les routes auth partagent le layout sidebar
     {
       path: '/',
-      name: 'home',
-      component: () => import('@/pages/HomePage.vue'),
-    },
-    {
-      path: '/search',
-      name: 'search',
-      component: () => import('@/pages/SearchPage.vue'),
-    },
-    {
-      path: '/service/:slug',
-      name: 'service',
-      component: () => import('@/pages/ServicePage.vue'),
-    },
-    {
-      path: '/article/:id',
-      name: 'article',
-      component: () => import('@/pages/ArticlePage.vue'),
+      component: () => import('@/components/layout/AppLayout.vue'),
+      children: [
+        {
+          path: '',
+          name: 'home',
+          component: () => import('@/pages/HomePage.vue'),
+        },
+        {
+          path: 'conversations/:id',
+          name: 'conversation',
+          component: () => import('@/pages/ConversationPage.vue'),
+        },
+        {
+          path: 'service/:slug',
+          name: 'service',
+          component: () => import('@/pages/ServicePage.vue'),
+        },
+        {
+          path: 'article/:id',
+          name: 'article',
+          component: () => import('@/pages/ArticlePage.vue'),
+        },
+        {
+          path: 'dashboard',
+          name: 'dashboard',
+          component: () => import('@/pages/DashboardPage.vue'),
+          meta: { roles: ['RESPONSABLE'] },
+        },
+        {
+          path: 'dashboard/new',
+          name: 'article-new',
+          component: () => import('@/pages/ArticleFormPage.vue'),
+          meta: { roles: ['RESPONSABLE'] },
+        },
+        {
+          path: 'dashboard/edit/:id',
+          name: 'article-edit',
+          component: () => import('@/pages/ArticleFormPage.vue'),
+          meta: { roles: ['RESPONSABLE'] },
+        },
+        {
+          path: 'dashboard/global',
+          name: 'dashboard-global',
+          component: () => import('@/pages/DashboardGlobalPage.vue'),
+          meta: { roles: ['SUPER_ADMIN'] },
+        },
+        {
+          path: '403',
+          name: 'forbidden',
+          component: () => import('@/pages/ForbiddenPage.vue'),
+        },
+      ],
     },
 
-    // RESPONSABLE uniquement
-    {
-      path: '/dashboard/new',
-      name: 'article-new',
-      component: () => import('@/pages/ArticleFormPage.vue'),
-      meta: { roles: ['RESPONSABLE'] },
-    },
-    {
-      path: '/dashboard/edit/:id',
-      name: 'article-edit',
-      component: () => import('@/pages/ArticleFormPage.vue'),
-      meta: { roles: ['RESPONSABLE'] },
-    },
-    {
-      path: '/dashboard',
-      name: 'dashboard',
-      component: () => import('@/pages/DashboardPage.vue'),
-      meta: { roles: ['RESPONSABLE'] },
-    },
-
-    // SUPER_ADMIN uniquement
-    {
-      path: '/dashboard/global',
-      name: 'dashboard-global',
-      component: () => import('@/pages/DashboardGlobalPage.vue'),
-      meta: { roles: ['SUPER_ADMIN'] },
-    },
-
-    // Erreurs
-    {
-      path: '/403',
-      name: 'forbidden',
-      component: () => import('@/pages/ForbiddenPage.vue'),
-    },
-    {
-      path: '/:pathMatch(.*)*',
-      redirect: '/',
-    },
+    { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })
 
