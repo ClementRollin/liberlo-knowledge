@@ -1,6 +1,7 @@
 [
   {
-    "_comment": "develop — branche de dev active. PR obligatoire, CI stricte. Admin peut bypasser si besoin.",
+    "_comment": "develop — feature/fix/chore branches uniquement. CI de base.",
+    "_ruleset_id": 18555981,
     "name": "protect-develop",
     "target": "branch",
     "enforcement": "active",
@@ -35,8 +36,10 @@
         "parameters": {
           "strict_required_status_checks_policy": true,
           "required_status_checks": [
-            { "context": "Backend — Tests & Build" },
-            { "context": "Frontend — TypeCheck & Build" }
+            { "context": "Branch flow" },
+            { "context": "Backend — Lint" },
+            { "context": "Backend — Unit tests" },
+            { "context": "Frontend — Typecheck & Build" }
           ]
         }
       }
@@ -44,7 +47,8 @@
   },
 
   {
-    "_comment": "re7 — staging / tests prod. PR obligatoire, CI stricte, dismiss stale. Admin peut bypasser.",
+    "_comment": "re7 — develop uniquement. CI de base + E2E + build backend.",
+    "_ruleset_id": 18555982,
     "name": "protect-re7",
     "target": "branch",
     "enforcement": "active",
@@ -79,8 +83,12 @@
         "parameters": {
           "strict_required_status_checks_policy": true,
           "required_status_checks": [
-            { "context": "Backend — Tests & Build" },
-            { "context": "Frontend — TypeCheck & Build" }
+            { "context": "Branch flow" },
+            { "context": "Backend — Lint" },
+            { "context": "Backend — Unit tests" },
+            { "context": "Frontend — Typecheck & Build" },
+            { "context": "Backend — E2E tests" },
+            { "context": "Backend — Build" }
           ]
         }
       }
@@ -88,7 +96,8 @@
   },
 
   {
-    "_comment": "main — production. PR obligatoire, CI incontournable (aucun bypass). dismiss stale activé.",
+    "_comment": "main — re7 uniquement. CI complet + audit sécurité. Aucun bypass.",
+    "_ruleset_id": 18555983,
     "name": "protect-main",
     "target": "branch",
     "enforcement": "active",
@@ -117,8 +126,13 @@
         "parameters": {
           "strict_required_status_checks_policy": true,
           "required_status_checks": [
-            { "context": "Backend — Tests & Build" },
-            { "context": "Frontend — TypeCheck & Build" }
+            { "context": "Branch flow" },
+            { "context": "Backend — Lint" },
+            { "context": "Backend — Unit tests" },
+            { "context": "Frontend — Typecheck & Build" },
+            { "context": "Backend — E2E tests" },
+            { "context": "Backend — Build" },
+            { "context": "Security audit" }
           ]
         }
       }
