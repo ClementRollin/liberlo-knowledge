@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import MarkdownContent from '@/components/ui/MarkdownContent.vue'
