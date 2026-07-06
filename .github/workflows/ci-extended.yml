@@ -1,0 +1,83 @@
+name: CI — Extended (re7 & main)
+
+# Checks supplémentaires requis avant de merger dans re7 ou main :
+# - Tests E2E backend (Supertest contre une vraie DB)
+# - Build NestJS complet
+
+on:
+  pull_request:
+    branches: [re7, main]
+
+jobs:
+
+  # ─── Backend — E2E tests ───────────────────────────────────────────────────
+  backend-e2e:
+    name: Backend — E2E tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: liberlo
+          POSTGRES_PASSWORD: liberlo_dev
+          POSTGRES_DB: liberlo_e2e
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - run: cd backend && npm ci
+
+      - name: Generate Prisma client
+        run: cd backend && npx prisma generate
+        env:
+          DATABASE_URL: postgresql://liberlo:liberlo_dev@localhost:5432/liberlo_e2e
+
+      - name: Run migrations
+        run: cd backend && npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://liberlo:liberlo_dev@localhost:5432/liberlo_e2e
+
+      - name: Run E2E tests
+        run: cd backend && npm run test:e2e -- --passWithNoTests
+        env:
+          DATABASE_URL: postgresql://liberlo:liberlo_dev@localhost:5432/liberlo_e2e
+          JWT_SECRET: ci_test_secret
+          JWT_EXPIRES_IN: 8h
+          OPENAI_API_KEY: sk-test-mock
+
+  # ─── Backend — Build ───────────────────────────────────────────────────────
+  backend-build:
+    name: Backend — Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - run: cd backend && npm ci
+
+      - name: Generate Prisma client
+        run: cd backend && npx prisma generate
+        env:
+          DATABASE_URL: postgresql://liberlo:liberlo_dev@localhost:5432/liberlo_build
+
+      - name: TypeScript build
+        run: cd backend && npm run build
