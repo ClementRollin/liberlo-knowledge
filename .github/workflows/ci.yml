@@ -62,6 +62,11 @@ jobs:
 
       - run: cd backend && npm ci
 
+      - name: Generate Prisma client
+        run: cd backend && npx prisma generate
+        env:
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+
       - run: cd backend && npm run lint
 
   # ─── Backend — Unit tests ──────────────────────────────────────────────────
