@@ -1,14 +1,17 @@
-import { Injectable } from '@nestjs/common'
-import { PrismaService } from '../prisma/prisma.service'
-import type { User } from '@prisma/client'
-import type { SearchDto } from './dto/search.dto'
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import type { User } from '@prisma/client';
+import type { SearchDto } from './dto/search.dto';
 
 @Injectable()
 export class SearchService {
   constructor(private prisma: PrismaService) {}
 
   // TODO: remplacer par similarité cosinus pgvector quand le modèle d'embeddings sera retenu
-  async search(dto: SearchDto, _requester: User) {
+  async search(
+    dto: SearchDto,
+    _requester: Pick<User, 'id' | 'role' | 'serviceId'>,
+  ) {
     const results = await this.prisma.article.findMany({
       where: {
         status: 'PUBLISHED',
@@ -29,8 +32,8 @@ export class SearchService {
       },
       take: 20,
       orderBy: { updatedAt: 'desc' },
-    })
+    });
 
-    return results.map((r) => ({ ...r, score: 1 }))
+    return results.map((r) => ({ ...r, score: 1 }));
   }
 }
