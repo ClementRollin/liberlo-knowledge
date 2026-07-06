@@ -1,0 +1,127 @@
+[
+  {
+    "_comment": "develop — branche de dev active. PR obligatoire, CI stricte. Admin peut bypasser si besoin.",
+    "name": "protect-develop",
+    "target": "branch",
+    "enforcement": "active",
+    "conditions": {
+      "ref_name": {
+        "include": ["refs/heads/develop"],
+        "exclude": []
+      }
+    },
+    "bypass_actors": [
+      {
+        "actor_id": 4,
+        "actor_type": "RepositoryRole",
+        "bypass_mode": "always"
+      }
+    ],
+    "rules": [
+      { "type": "deletion" },
+      { "type": "non_fast_forward" },
+      {
+        "type": "pull_request",
+        "parameters": {
+          "required_approving_review_count": 0,
+          "dismiss_stale_reviews_on_push": false,
+          "require_code_owner_review": false,
+          "require_last_push_approval": false,
+          "allowed_merge_methods": ["merge", "squash", "rebase"]
+        }
+      },
+      {
+        "type": "required_status_checks",
+        "parameters": {
+          "strict_required_status_checks_policy": true,
+          "required_status_checks": [
+            { "context": "Backend — Tests & Build" },
+            { "context": "Frontend — TypeCheck & Build" }
+          ]
+        }
+      }
+    ]
+  },
+
+  {
+    "_comment": "re7 — staging / tests prod. PR obligatoire, CI stricte, dismiss stale. Admin peut bypasser.",
+    "name": "protect-re7",
+    "target": "branch",
+    "enforcement": "active",
+    "conditions": {
+      "ref_name": {
+        "include": ["refs/heads/re7"],
+        "exclude": []
+      }
+    },
+    "bypass_actors": [
+      {
+        "actor_id": 4,
+        "actor_type": "RepositoryRole",
+        "bypass_mode": "always"
+      }
+    ],
+    "rules": [
+      { "type": "deletion" },
+      { "type": "non_fast_forward" },
+      {
+        "type": "pull_request",
+        "parameters": {
+          "required_approving_review_count": 0,
+          "dismiss_stale_reviews_on_push": true,
+          "require_code_owner_review": false,
+          "require_last_push_approval": false,
+          "allowed_merge_methods": ["merge", "squash", "rebase"]
+        }
+      },
+      {
+        "type": "required_status_checks",
+        "parameters": {
+          "strict_required_status_checks_policy": true,
+          "required_status_checks": [
+            { "context": "Backend — Tests & Build" },
+            { "context": "Frontend — TypeCheck & Build" }
+          ]
+        }
+      }
+    ]
+  },
+
+  {
+    "_comment": "main — production. PR obligatoire, CI incontournable (aucun bypass). dismiss stale activé.",
+    "name": "protect-main",
+    "target": "branch",
+    "enforcement": "active",
+    "conditions": {
+      "ref_name": {
+        "include": ["refs/heads/main"],
+        "exclude": []
+      }
+    },
+    "bypass_actors": [],
+    "rules": [
+      { "type": "deletion" },
+      { "type": "non_fast_forward" },
+      {
+        "type": "pull_request",
+        "parameters": {
+          "required_approving_review_count": 0,
+          "dismiss_stale_reviews_on_push": true,
+          "require_code_owner_review": false,
+          "require_last_push_approval": false,
+          "allowed_merge_methods": ["merge", "squash"]
+        }
+      },
+      {
+        "type": "required_status_checks",
+        "parameters": {
+          "strict_required_status_checks_policy": true,
+          "required_status_checks": [
+            { "context": "Backend — Tests & Build" },
+            { "context": "Frontend — TypeCheck & Build" }
+          ]
+        }
+      }
+    ]
+  }
+]
