@@ -1,15 +1,15 @@
-name: Deploy — Staging
+name: Deploy — Re7 (staging)
 
 on:
   push:
-    branches: [staging]
+    branches: [re7]
   workflow_dispatch:
 
 jobs:
-  deploy-staging:
-    name: Deploy to staging environment
+  deploy-re7:
+    name: Deploy to re7 environment
     runs-on: ubuntu-latest
-    environment: staging
+    environment: re7
 
     steps:
       - uses: actions/checkout@v4
@@ -39,10 +39,7 @@ jobs:
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
 
-      # TODO: Ajouter ici les étapes de déploiement selon l'infrastructure choisie
-      # Exemples :
-      #   - SSH + rsync vers un VPS (avec secret SSH_PRIVATE_KEY)
-      #   - docker build + push + deploy (Railway, Render, Fly.io)
-      #   - Mise à jour d'un service systemd sur VPS
+      # TODO: Configurer les étapes de déploiement re7 selon l'infrastructure choisie
+      # Exemples : SSH + rsync, Railway, Render, Fly.io, docker build+push
       - name: Deploy (à configurer)
-        run: echo "Étapes de déploiement staging à configurer selon l'infrastructure"
+        run: echo "Étapes de déploiement re7 à configurer selon l'infrastructure"
