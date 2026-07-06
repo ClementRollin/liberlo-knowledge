@@ -79,7 +79,7 @@ src/
 │   │   └── dto/
 │   │       ├── login.dto.ts
 │   │       └── activate.dto.ts
-│   ├── users/                   ← NOUVEAU
+│   ├── users/
 │   │   ├── users.controller.ts
 │   │   ├── users.service.ts
 │   │   ├── users.module.ts
@@ -101,7 +101,7 @@ src/
 │   │   ├── search.module.ts
 │   │   └── dto/
 │   │       └── search.dto.ts
-│   └── import/                  ← NOUVEAU
+│   └── import/
 │       ├── import.controller.ts
 │       ├── import.service.ts
 │       ├── import.module.ts
@@ -112,7 +112,7 @@ src/
 │           ├── analyze-document.dto.ts
 │           └── confirm-import.dto.ts
 ├── shared/                      ← utilitaires partagés entre modules
-│   ├── embedding/               ← NOUVEAU
+│   ├── embedding/
 │   │   ├── embedding.service.ts
 │   │   └── embedding.module.ts
 │   ├── guards/
@@ -141,8 +141,8 @@ src/
 │   │   ├── LoginPage.vue
 │   │   └── ActivatePage.vue
 │   ├── admin/
-│   │   ├── UsersPage.vue        ← NOUVEAU
-│   │   └── ImportPage.vue       ← NOUVEAU
+│   │   ├── UsersPage.vue
+│   │   └── ImportPage.vue
 │   ├── dashboard/
 │   │   ├── DashboardPage.vue
 │   │   └── DashboardGlobalPage.vue
@@ -154,9 +154,9 @@ src/
 │   └── ForbiddenPage.vue
 ├── components/
 │   ├── ui/                      ← composants génériques réutilisables
-│   │   ├── ToastContainer.vue   ← NOUVEAU
-│   │   ├── ConfirmModal.vue     ← NOUVEAU
-│   │   ├── EmptyState.vue       ← NOUVEAU
+│   │   ├── ToastContainer.vue
+│   │   ├── ConfirmModal.vue
+│   │   ├── EmptyState.vue
 │   │   └── MarkdownContent.vue
 │   ├── layout/
 │   │   └── AppHeader.vue
@@ -164,13 +164,13 @@ src/
 │       ├── articles/
 │       │   └── ArticleCard.vue
 │       ├── users/
-│       │   └── UserDrawer.vue   ← NOUVEAU
+│       │   └── UserDrawer.vue
 │       └── import/
-│           └── ImportWizard.vue ← NOUVEAU
+│           └── ImportWizard.vue
 ├── composables/
 │   ├── useApi.ts
-│   ├── useToast.ts              ← NOUVEAU
-│   └── useAuth.ts               ← NOUVEAU (extraire logique du store)
+│   ├── useToast.ts
+│   └── useAuth.ts
 ├── stores/
 │   └── auth.ts
 ├── router/
