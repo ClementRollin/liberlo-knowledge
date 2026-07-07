@@ -122,9 +122,10 @@ export class SearchService {
       return { ...r, score };
     });
 
-    const seen = new Set(semanticResults.map((r) => r.id));
+    const relevantSemantic = semanticResults.filter((r) => r.score > 0);
+    const seen = new Set(relevantSemantic.map((r) => r.id));
     const merged = [
-      ...semanticResults,
+      ...relevantSemantic,
       ...keywordResults.filter((r) => r.score > 0 && !seen.has(r.id)),
     ].sort((a, b) => b.score - a.score);
 
