@@ -1,5 +1,6 @@
 import { ArticlesService } from './articles.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmbeddingService } from '../embedding/embedding.service';
 import { ForbiddenException } from '@nestjs/common';
 import type { User } from '@prisma/client';
 
@@ -37,7 +38,8 @@ const makeArticle = (overrides = {}) => ({
 
 describe('ArticlesService', () => {
   let service: ArticlesService;
-  let mockPrisma: jest.Mocked<Pick<PrismaService, 'article'>>;
+  let mockPrisma: jest.Mocked<Pick<PrismaService, 'article' | '$executeRaw'>>;
+  let mockEmbedding: { generateEmbedding: jest.Mock };
 
   beforeEach(() => {
     mockPrisma = {
@@ -48,8 +50,15 @@ describe('ArticlesService', () => {
         update: jest.fn(),
         delete: jest.fn(),
       },
+      $executeRaw: jest.fn().mockResolvedValue(1),
     } as any;
-    service = new ArticlesService(mockPrisma as unknown as PrismaService);
+    mockEmbedding = {
+      generateEmbedding: jest.fn().mockResolvedValue(new Array(1536).fill(0.1)),
+    };
+    service = new ArticlesService(
+      mockPrisma as unknown as PrismaService,
+      mockEmbedding as unknown as EmbeddingService,
+    );
   });
 
   describe('findByService', () => {
@@ -67,8 +76,15 @@ describe('ArticlesService', () => {
   });
 
   describe('create', () => {
-    it('should create an article scoped to author\'s service', async () => {
-      const dto = { title: 'Nouveau', content: 'Body', summary: '', tags: [], status: 'DRAFT' as const, visibility: 'SERVICE' as const };
+    it("should create an article scoped to author's service", async () => {
+      const dto = {
+        title: 'Nouveau',
+        content: 'Body',
+        summary: '',
+        tags: [],
+        status: 'DRAFT' as const,
+        visibility: 'SERVICE' as const,
+      };
       const created = makeArticle({ title: 'Nouveau' });
       (mockPrisma.article.create as jest.Mock).mockResolvedValue(created);
 
@@ -76,32 +92,47 @@ describe('ArticlesService', () => {
 
       expect(mockPrisma.article.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ authorId: responsable.id, serviceId: responsable.serviceId }),
+          data: expect.objectContaining({
+            authorId: responsable.id,
+            serviceId: responsable.serviceId,
+          }),
         }),
       );
       expect(result).toEqual(created);
     });
 
-    it('should throw ForbiddenException when author has no serviceId', () => {
+    it('should throw ForbiddenException when author has no serviceId', async () => {
       const noServiceUser = { ...responsable, serviceId: null };
 
-      // create() throws synchronously before returning a promise
-      expect(() =>
+      await expect(
         service.create(
-          { title: 'X', content: 'Y', summary: '', tags: [], status: 'DRAFT', visibility: 'SERVICE' },
+          {
+            title: 'X',
+            content: 'Y',
+            summary: '',
+            tags: [],
+            status: 'DRAFT',
+            visibility: 'SERVICE',
+          },
           noServiceUser as unknown as User,
         ),
-      ).toThrow(ForbiddenException);
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
   describe('update', () => {
     it('should update an article when requester belongs to same service', async () => {
-      (mockPrisma.article.findUniqueOrThrow as jest.Mock).mockResolvedValue(makeArticle());
+      (mockPrisma.article.findUniqueOrThrow as jest.Mock).mockResolvedValue(
+        makeArticle(),
+      );
       const updated = makeArticle({ title: 'Modifié' });
       (mockPrisma.article.update as jest.Mock).mockResolvedValue(updated);
 
-      const result = await service.update('art-1', { title: 'Modifié' }, responsable);
+      const result = await service.update(
+        'art-1',
+        { title: 'Modifié' },
+        responsable,
+      );
 
       expect(result.title).toBe('Modifié');
     });
@@ -119,12 +150,16 @@ describe('ArticlesService', () => {
 
   describe('remove', () => {
     it('should delete an article when requester belongs to same service', async () => {
-      (mockPrisma.article.findUniqueOrThrow as jest.Mock).mockResolvedValue(makeArticle());
+      (mockPrisma.article.findUniqueOrThrow as jest.Mock).mockResolvedValue(
+        makeArticle(),
+      );
       (mockPrisma.article.delete as jest.Mock).mockResolvedValue({});
 
       await service.remove('art-1', responsable);
 
-      expect(mockPrisma.article.delete).toHaveBeenCalledWith({ where: { id: 'art-1' } });
+      expect(mockPrisma.article.delete).toHaveBeenCalledWith({
+        where: { id: 'art-1' },
+      });
     });
 
     it('should throw ForbiddenException when requester is from a different service', async () => {
@@ -132,7 +167,9 @@ describe('ArticlesService', () => {
         makeArticle({ serviceId: 'svc-sales' }),
       );
 
-      await expect(service.remove('art-1', responsable)).rejects.toThrow(ForbiddenException);
+      await expect(service.remove('art-1', responsable)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 });

@@ -1,7 +1,12 @@
 import { SearchService } from './search.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmbeddingService } from '../embedding/embedding.service';
 
-const REQUESTER = { id: 'user-1', role: 'COLLABORATOR' as const, serviceId: 'svc-1' };
+const REQUESTER = {
+  id: 'user-1',
+  role: 'COLLABORATOR' as const,
+  serviceId: 'svc-1',
+};
 
 const makeArticle = (overrides: object) => ({
   id: 'art-1',
@@ -17,11 +22,21 @@ const makeArticle = (overrides: object) => ({
 
 describe('SearchService', () => {
   let service: SearchService;
-  let mockPrisma: jest.Mocked<Pick<PrismaService, 'article'>>;
+  let mockPrisma: jest.Mocked<Pick<PrismaService, 'article' | '$queryRaw'>>;
+  let mockEmbedding: { generateEmbedding: jest.Mock };
 
   beforeEach(() => {
-    mockPrisma = { article: { findMany: jest.fn() } } as any;
-    service = new SearchService(mockPrisma as unknown as PrismaService);
+    mockPrisma = {
+      article: { findMany: jest.fn() },
+      $queryRaw: jest.fn().mockResolvedValue([]),
+    } as any;
+    mockEmbedding = {
+      generateEmbedding: jest.fn().mockResolvedValue(new Array(1536).fill(0.1)),
+    };
+    service = new SearchService(
+      mockPrisma as unknown as PrismaService,
+      mockEmbedding as unknown as EmbeddingService,
+    );
   });
 
   describe('tokenisation', () => {
@@ -31,10 +46,11 @@ describe('SearchService', () => {
       await service.search({ query: 'le processus de gestion' }, REQUESTER);
 
       const [call] = (mockPrisma.article.findMany as jest.Mock).mock.calls;
-      const orClauses: Array<{ title?: { contains: string } }> = call[0].where.OR;
+      const orClauses: Array<{ title?: { contains: string } }> =
+        call[0].where.OR;
       const titleTokens = orClauses
-        .filter(c => c.title?.contains !== undefined)
-        .map(c => c.title!.contains);
+        .filter((c) => c.title?.contains !== undefined)
+        .map((c) => c.title!.contains);
 
       expect(titleTokens).not.toContain('le');
       expect(titleTokens).not.toContain('de');
@@ -48,10 +64,11 @@ describe('SearchService', () => {
       await service.search({ query: 'IT RH bon' }, REQUESTER);
 
       const [call] = (mockPrisma.article.findMany as jest.Mock).mock.calls;
-      const orClauses: Array<{ title?: { contains: string } }> = call[0].where.OR;
+      const orClauses: Array<{ title?: { contains: string } }> =
+        call[0].where.OR;
       const titleTokens = orClauses
-        .filter(c => c.title?.contains !== undefined)
-        .map(c => c.title!.contains);
+        .filter((c) => c.title?.contains !== undefined)
+        .map((c) => c.title!.contains);
 
       expect(titleTokens).not.toContain('it');
       expect(titleTokens).not.toContain('rh');
@@ -64,10 +81,11 @@ describe('SearchService', () => {
       await service.search({ query: 'csm-it_process' }, REQUESTER);
 
       const [call] = (mockPrisma.article.findMany as jest.Mock).mock.calls;
-      const orClauses: Array<{ title?: { contains: string } }> = call[0].where.OR;
+      const orClauses: Array<{ title?: { contains: string } }> =
+        call[0].where.OR;
       const titleTokens = orClauses
-        .filter(c => c.title?.contains !== undefined)
-        .map(c => c.title!.contains);
+        .filter((c) => c.title?.contains !== undefined)
+        .map((c) => c.title!.contains);
 
       expect(titleTokens).toContain('csm');
       expect(titleTokens).toContain('process');
@@ -114,20 +132,43 @@ describe('SearchService', () => {
 
     it('should rank phrase match higher than token-only match', async () => {
       const articles = [
-        makeArticle({ id: 'only-token', title: 'Processus', summary: 'CSM article', content: 'IT info' }),
-        makeArticle({ id: 'phrase', title: 'Processus CSM IT', summary: 'Escalade transversal', content: '' }),
+        makeArticle({
+          id: 'only-token',
+          title: 'Processus',
+          summary: 'CSM article',
+          content: 'IT info',
+        }),
+        makeArticle({
+          id: 'phrase',
+          title: 'Processus CSM IT',
+          summary: 'Escalade transversal',
+          content: '',
+        }),
       ];
       (mockPrisma.article.findMany as jest.Mock).mockResolvedValue(articles);
 
-      const results = await service.search({ query: 'processus CSM IT' }, REQUESTER);
+      const results = await service.search(
+        { query: 'processus CSM IT' },
+        REQUESTER,
+      );
 
       expect(results[0].id).toBe('phrase');
     });
 
     it('should rank title token match higher than content-only match', async () => {
       const articles = [
-        makeArticle({ id: 'content-match', title: 'Guide général', summary: '', content: 'onboarding process' }),
-        makeArticle({ id: 'title-match', title: 'Onboarding process', summary: '', content: 'autre chose' }),
+        makeArticle({
+          id: 'content-match',
+          title: 'Guide général',
+          summary: '',
+          content: 'onboarding process',
+        }),
+        makeArticle({
+          id: 'title-match',
+          title: 'Onboarding process',
+          summary: '',
+          content: 'autre chose',
+        }),
       ];
       (mockPrisma.article.findMany as jest.Mock).mockResolvedValue(articles);
 
@@ -139,7 +180,13 @@ describe('SearchService', () => {
     it('should filter out results with score 0', async () => {
       // Article has nothing related to the query in its text
       const articles = [
-        makeArticle({ id: 'irrelevant', title: 'AAAA', summary: 'BBBB', content: 'CCCC', tags: [] }),
+        makeArticle({
+          id: 'irrelevant',
+          title: 'AAAA',
+          summary: 'BBBB',
+          content: 'CCCC',
+          tags: [],
+        }),
       ];
       (mockPrisma.article.findMany as jest.Mock).mockResolvedValue(articles);
 
@@ -151,12 +198,27 @@ describe('SearchService', () => {
 
     it('should boost tag matches', async () => {
       const articles = [
-        makeArticle({ id: 'tag-match', title: 'Article', summary: '', content: '', tags: ['csm', 'escalade'] }),
-        makeArticle({ id: 'no-tag', title: 'Autre', summary: 'csm mentionné en résumé', content: '', tags: [] }),
+        makeArticle({
+          id: 'tag-match',
+          title: 'Article',
+          summary: '',
+          content: '',
+          tags: ['csm', 'escalade'],
+        }),
+        makeArticle({
+          id: 'no-tag',
+          title: 'Autre',
+          summary: 'csm mentionné en résumé',
+          content: '',
+          tags: [],
+        }),
       ];
       (mockPrisma.article.findMany as jest.Mock).mockResolvedValue(articles);
 
-      const results = await service.search({ query: 'escalade csm' }, REQUESTER);
+      const results = await service.search(
+        { query: 'escalade csm' },
+        REQUESTER,
+      );
 
       // tag-match has 'escalade' and 'csm' as tags
       expect(results[0].id).toBe('tag-match');
