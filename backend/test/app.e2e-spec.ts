@@ -139,9 +139,13 @@ describe('Liberlo API (e2e)', () => {
     })
       .overrideProvider(EmbeddingService)
       .useValue({
-        generateEmbedding: jest
-          .fn()
-          .mockResolvedValue(new Array(1536).fill(0.1)),
+        generateEmbedding: jest.fn().mockImplementation(() => {
+          // Random unit vectors ensure near-zero cosine similarity between calls,
+          // so indexed articles won't appear in unrelated semantic search queries.
+          const v = Array.from({ length: 1536 }, () => Math.random() - 0.5);
+          const norm = Math.sqrt(v.reduce((s, x) => s + x * x, 0));
+          return Promise.resolve(v.map((x) => x / norm));
+        }),
       })
       .compile();
 
