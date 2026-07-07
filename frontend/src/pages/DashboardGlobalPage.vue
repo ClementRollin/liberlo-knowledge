@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import AppHeader from '@/components/layout/AppHeader.vue'
 import { useApi } from '@/composables/useApi'
 import type { Article } from '@/types'
 
@@ -43,10 +42,8 @@ const serviceIcons: Record<string, string> = {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col bg-[#fafafa]">
-    <AppHeader />
-
-    <main class="flex-1 max-w-[1200px] mx-auto w-full px-8 py-10">
+  <div class="min-h-full bg-[#fafafa]">
+    <div class="max-w-[1200px] mx-auto w-full px-8 py-10">
 
       <!-- Header -->
       <div class="mb-10">
@@ -162,6 +159,6 @@ const serviceIcons: Record<string, string> = {
           Aucun article pour ce filtre.
         </p>
       </div>
-    </main>
+    </div>
   </div>
 </template>

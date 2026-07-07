@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import AppHeader from '@/components/layout/AppHeader.vue'
 import MarkdownContent from '@/components/ui/MarkdownContent.vue'
 import { useApi } from '@/composables/useApi'
 import type { Article } from '@/types'
@@ -63,10 +62,8 @@ async function save() {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col bg-[#fafafa]">
-    <AppHeader />
-
-    <main class="flex-1 max-w-[900px] mx-auto w-full px-8 py-10">
+  <div class="min-h-full bg-[#fafafa]">
+    <div class="max-w-[900px] mx-auto w-full px-8 py-10">
 
       <!-- Header -->
       <div class="flex items-center justify-between mb-8">
@@ -191,6 +188,6 @@ async function save() {
         <p v-else class="text-gray-300 text-sm">Aucun contenu à prévisualiser.</p>
       </div>
 
-    </main>
+    </div>
   </div>
 </template>

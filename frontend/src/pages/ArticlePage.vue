@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import AppHeader from '@/components/layout/AppHeader.vue'
 import MarkdownContent from '@/components/ui/MarkdownContent.vue'
 import { useApi } from '@/composables/useApi'
 import type { Article } from '@/types'
@@ -25,10 +24,9 @@ watch(() => route.params.id, async (id) => {
 
 <template>
   <!-- Maquette Figma : frame "Fiche d'infos" (30:554) -->
-  <div class="min-h-screen flex flex-col bg-white">
-    <AppHeader />
+  <div class="min-h-full bg-white">
 
-    <main class="flex-1 max-w-[1200px] mx-auto w-full px-8 py-10">
+    <div class="max-w-[900px] mx-auto w-full px-8 py-10">
 
       <!-- Retour -->
       <button
@@ -89,6 +87,6 @@ watch(() => route.params.id, async (id) => {
         <!-- Content — rendu markdown -->
         <MarkdownContent :content="article.content" />
       </template>
-    </main>
+    </div>
   </div>
 </template>
