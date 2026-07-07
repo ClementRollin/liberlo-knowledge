@@ -1,5 +1,10 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmbeddingService } from '../embedding/embedding.service';
 import type { User } from '@prisma/client';
 import type { CreateArticleDto } from './dto/create-article.dto';
 import type { UpdateArticleDto } from './dto/update-article.dto';
@@ -23,7 +28,10 @@ const ARTICLE_SELECT = {
 
 @Injectable()
 export class ArticlesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private embedding: EmbeddingService,
+  ) {}
 
   findByService(serviceId: string) {
     return this.prisma.article.findMany({
@@ -47,12 +55,20 @@ export class ArticlesService {
     });
   }
 
-  create(dto: CreateArticleDto, author: User) {
+  async create(dto: CreateArticleDto, author: User) {
     if (!author.serviceId) throw new ForbiddenException();
-    return this.prisma.article.create({
+    const article = await this.prisma.article.create({
       data: { ...dto, authorId: author.id, serviceId: author.serviceId },
       select: ARTICLE_SELECT,
     });
+    await this.indexEmbedding(
+      article.id,
+      article.title,
+      article.summary,
+      article.tags,
+      article.content,
+    );
+    return article;
   }
 
   async update(id: string, dto: UpdateArticleDto, requester: User) {
@@ -61,11 +77,19 @@ export class ArticlesService {
     });
     if (article.serviceId !== requester.serviceId)
       throw new ForbiddenException();
-    return this.prisma.article.update({
+    const updated = await this.prisma.article.update({
       where: { id },
       data: dto,
       select: ARTICLE_SELECT,
     });
+    await this.indexEmbedding(
+      updated.id,
+      updated.title,
+      updated.summary,
+      updated.tags,
+      updated.content,
+    );
+    return updated;
   }
 
   async remove(id: string, requester: User) {
@@ -75,5 +99,29 @@ export class ArticlesService {
     if (article.serviceId !== requester.serviceId)
       throw new ForbiddenException();
     await this.prisma.article.delete({ where: { id } });
+  }
+
+  private async indexEmbedding(
+    articleId: string,
+    title: string,
+    summary: string | null,
+    tags: string[],
+    content: string,
+  ): Promise<void> {
+    const text = [title, summary ?? '', tags.join(' '), content]
+      .filter(Boolean)
+      .join('\n');
+    try {
+      const vector = await this.embedding.generateEmbedding(text);
+      const pgVector = `[${vector.join(',')}]`;
+      await this.prisma.$executeRaw`
+        UPDATE "Article" SET embedding = ${pgVector}::vector WHERE id = ${articleId}
+      `;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new ServiceUnavailableException(
+        `L'indexation sémantique a échoué : ${message}. L'article a été sauvegardé mais ne sera pas retrouvable via la recherche sémantique.`,
+      );
+    }
   }
 }
