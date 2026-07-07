@@ -157,6 +157,22 @@ async function deleteConv(id: string, e: Event) {
         <span class="text-xs">Dashboard global</span>
       </RouterLink>
 
+      <!-- Gestion utilisateurs SUPER_ADMIN -->
+      <RouterLink
+        v-if="auth.hasRole('SUPER_ADMIN')"
+        to="/admin/users"
+        class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors"
+        :class="route.path === '/admin/users'
+          ? 'bg-[#6b2fa0]/50 text-white'
+          : 'text-white/55 hover:bg-white/10 hover:text-white/80'"
+      >
+        <svg class="w-3.5 h-3.5 flex-none opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+        <span class="text-xs">Utilisateurs</span>
+      </RouterLink>
+
       <!-- User -->
       <div class="flex items-center gap-2.5 px-3 py-2 mt-1">
         <div class="w-6 h-6 rounded-full bg-[#6b2fa0] flex items-center justify-center text-white text-[10px] font-bold flex-none">
