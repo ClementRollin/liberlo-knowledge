@@ -1,4 +1,21 @@
-name: Deploy — Production
+name: Deploy — Production (knowledge.liberlo.com)
+
+# Déclenché automatiquement à chaque merge dans main (re7 → main).
+# Ce workflow exige que TOUS les secrets soient configurés dans
+# l'environnement GitHub "production" — le déploiement échoue si
+# l'un d'eux est absent.
+#
+# Secrets attendus dans l'environnement GitHub "production" :
+#   DATABASE_URL        — Connexion PostgreSQL production
+#   OPENAI_API_KEY      — Clé API OpenAI pour les embeddings
+#   JWT_SECRET          — Secret de signature des tokens
+#   REGISTRY            — URL du registry Docker (ex: registry.liberlo.com)
+#   REGISTRY_USER       — Utilisateur du registry
+#   REGISTRY_TOKEN      — Token d'authentification registry
+#   SSH_PRIVATE_KEY     — Clé SSH pour accès au serveur production
+#   PROD_HOST           — Adresse IP ou hostname du serveur production
+#   DEPLOY_USER         — Utilisateur SSH de déploiement (ex: liberlo)
+#   SLACK_WEBHOOK       — Webhook Slack pour les notifications de déploiement
 
 on:
   push:
@@ -7,16 +24,22 @@ on:
 
 jobs:
   deploy-production:
-    name: Deploy to production environment
+    name: Deploy to production
     runs-on: ubuntu-latest
-    environment: production
+    environment:
+      name: production
+      url: https://knowledge.liberlo.com
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
+
+      # ── Build backend ────────────────────────────────────────────────────────
 
       - name: Install backend dependencies
         run: cd backend && npm ci
@@ -26,19 +49,163 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-      - name: Run database migrations
-        run: cd backend && npx prisma migrate deploy
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
-      - name: Build backend
+      - name: Build backend (TypeScript)
         run: cd backend && npm run build
 
-      - name: Build frontend
-        run: cd frontend && npm ci && npm run build
-        env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+      # ── Build frontend ───────────────────────────────────────────────────────
 
-      # TODO: Ajouter ici les étapes de déploiement production
-      - name: Deploy (à configurer)
-        run: echo "Étapes de déploiement production à configurer selon l'infrastructure"
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+
+      - name: Build frontend
+        run: cd frontend && npm run build
+        env:
+          VITE_API_URL: https://api.knowledge.liberlo.com
+
+      # ── Docker — build & push ────────────────────────────────────────────────
+
+      - name: Log in to Liberlo registry
+        run: |
+          echo "${{ secrets.REGISTRY_TOKEN }}" \
+            | docker login "${{ secrets.REGISTRY }}" \
+                -u "${{ secrets.REGISTRY_USER }}" \
+                --password-stdin
+
+      - name: Build Docker images
+        run: |
+          docker build \
+            --label "git.sha=${{ github.sha }}" \
+            --label "git.ref=main" \
+            --label "deploy.env=production" \
+            -t "${{ secrets.REGISTRY }}/liberlo-knowledge-backend:${{ github.sha }}" \
+            -t "${{ secrets.REGISTRY }}/liberlo-knowledge-backend:latest" \
+            ./backend
+
+          docker build \
+            --label "git.sha=${{ github.sha }}" \
+            --label "git.ref=main" \
+            --label "deploy.env=production" \
+            -t "${{ secrets.REGISTRY }}/liberlo-knowledge-frontend:${{ github.sha }}" \
+            -t "${{ secrets.REGISTRY }}/liberlo-knowledge-frontend:latest" \
+            ./frontend
+
+      - name: Push Docker images
+        run: |
+          docker push "${{ secrets.REGISTRY }}/liberlo-knowledge-backend:${{ github.sha }}"
+          docker push "${{ secrets.REGISTRY }}/liberlo-knowledge-backend:latest"
+          docker push "${{ secrets.REGISTRY }}/liberlo-knowledge-frontend:${{ github.sha }}"
+          docker push "${{ secrets.REGISTRY }}/liberlo-knowledge-frontend:latest"
+
+      # ── Deploy via SSH ───────────────────────────────────────────────────────
+
+      - name: Configure SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.PROD_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Run database migrations
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+              "${{ secrets.DEPLOY_USER }}@${{ secrets.PROD_HOST }}" \
+              "cd /opt/liberlo-knowledge && \
+               DATABASE_URL='${{ secrets.DATABASE_URL }}' \
+               docker compose exec -T backend npx prisma migrate deploy"
+
+      - name: Rolling restart — production
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+              "${{ secrets.DEPLOY_USER }}@${{ secrets.PROD_HOST }}" \
+              "cd /opt/liberlo-knowledge && \
+               BACKEND_IMAGE='${{ secrets.REGISTRY }}/liberlo-knowledge-backend:${{ github.sha }}' \
+               FRONTEND_IMAGE='${{ secrets.REGISTRY }}/liberlo-knowledge-frontend:${{ github.sha }}' \
+               docker compose pull && \
+               docker compose up -d --remove-orphans && \
+               docker image prune -f"
+
+      # ── Health check & smoke test ─────────────────────────────────────────────
+
+      - name: Health check — knowledge.liberlo.com
+        run: |
+          echo "⏳ Attente du démarrage des conteneurs..."
+          sleep 15
+          for i in {1..18}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              https://knowledge.liberlo.com/api/health || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Production opérationnelle (HTTP $STATUS)"
+              exit 0
+            fi
+            echo "   Tentative $i/18 — HTTP $STATUS — retry dans 5s..."
+            sleep 5
+          done
+          echo "❌ Health check échoué après 90s — rollback recommandé"
+          exit 1
+
+      - name: Smoke test — authentification
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST https://knowledge.liberlo.com/api/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{}' || echo "000")
+          # 400 = validation error = API fonctionnelle (corps vide rejeté correctement)
+          if [ "$STATUS" = "400" ]; then
+            echo "✅ Smoke test auth OK (HTTP 400 — validation active)"
+          else
+            echo "❌ Smoke test inattendu : HTTP $STATUS"
+            exit 1
+          fi
+
+      # ── Notification Slack ────────────────────────────────────────────────────
+
+      - name: Notify Slack — déploiement réussi
+        if: success() && ${{ secrets.SLACK_WEBHOOK != '' }}
+        run: |
+          curl -s -X POST "${{ secrets.SLACK_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "text": "✅ *Liberlo Knowledge — Production déployée*",
+              "attachments": [{
+                "color": "good",
+                "fields": [
+                  {"title": "URL", "value": "https://knowledge.liberlo.com", "short": true},
+                  {"title": "Commit", "value": "${{ github.sha }}", "short": true},
+                  {"title": "Par", "value": "${{ github.actor }}", "short": true}
+                ]
+              }]
+            }'
+
+      - name: Notify Slack — déploiement échoué
+        if: failure() && ${{ secrets.SLACK_WEBHOOK != '' }}
+        run: |
+          curl -s -X POST "${{ secrets.SLACK_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "text": "❌ *Liberlo Knowledge — Échec déploiement production*",
+              "attachments": [{
+                "color": "danger",
+                "fields": [
+                  {"title": "Commit", "value": "${{ github.sha }}", "short": true},
+                  {"title": "Par", "value": "${{ github.actor }}", "short": true},
+                  {"title": "Logs", "value": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}", "short": false}
+                ]
+              }]
+            }'
+
+      # ── Job summary ──────────────────────────────────────────────────────────
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "## 🚀 Déploiement Production" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| | |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Environnement | **Production** |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| URL | https://knowledge.liberlo.com |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| API | https://api.knowledge.liberlo.com |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Commit | \`${{ github.sha }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Branche | \`main\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Déclenché par | ${{ github.actor }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Date | $(date -u '+%Y-%m-%d %H:%M UTC') |" >> "$GITHUB_STEP_SUMMARY"
