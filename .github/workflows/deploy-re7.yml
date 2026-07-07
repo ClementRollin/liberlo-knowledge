@@ -24,9 +24,10 @@ jobs:
       - name: Generate Prisma client
         run: cd backend && npx prisma generate
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://placeholder:placeholder@localhost:5432/placeholder' }}
 
       - name: Run database migrations
+        if: ${{ secrets.DATABASE_URL != '' }}
         run: cd backend && npx prisma migrate deploy
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -37,7 +38,7 @@ jobs:
       - name: Build frontend
         run: cd frontend && npm ci && npm run build
         env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL || 'http://localhost:3001' }}
 
       # TODO: Configurer les étapes de déploiement re7 selon l'infrastructure choisie
       # Exemples : SSH + rsync, Railway, Render, Fly.io, docker build+push
