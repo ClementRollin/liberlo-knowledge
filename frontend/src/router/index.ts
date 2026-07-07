@@ -77,6 +77,12 @@ const router = createRouter({
           component: () => import('@/pages/admin/UsersPage.vue'),
           meta: { roles: ['SUPER_ADMIN'] },
         },
+        {
+          path: 'admin/import',
+          name: 'admin-import',
+          component: () => import('@/pages/admin/ImportPage.vue'),
+          meta: { roles: ['SUPER_ADMIN'] },
+        },
 
         {
           path: '403',

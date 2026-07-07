@@ -61,4 +61,11 @@ export class ArticlesController {
   remove(@Param('id') id: string, @Request() req: { user: User }) {
     return this.articlesService.remove(id, req.user);
   }
+
+  @Post('reindex')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN')
+  reindexAll() {
+    return this.articlesService.reindexAll();
+  }
 }
