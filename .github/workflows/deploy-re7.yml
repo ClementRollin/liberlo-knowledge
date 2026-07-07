@@ -1,4 +1,18 @@
-name: Deploy — Re7 (staging)
+name: Deploy — Staging (re7-knowledge.liberlo.com)
+
+# Déclenché automatiquement à chaque merge dans re7 (develop → re7)
+# ou manuellement via workflow_dispatch.
+#
+# Secrets attendus dans l'environnement GitHub "re7" :
+#   DATABASE_URL        — Connexion PostgreSQL staging
+#   OPENAI_API_KEY      — Clé API OpenAI pour les embeddings
+#   JWT_SECRET          — Secret de signature des tokens
+#   REGISTRY            — URL du registry Docker (ex: registry.liberlo.com)
+#   REGISTRY_USER       — Utilisateur du registry
+#   REGISTRY_TOKEN      — Token d'authentification registry
+#   SSH_PRIVATE_KEY     — Clé SSH pour accès au serveur staging
+#   STAGING_HOST        — Adresse IP ou hostname du serveur staging
+#   DEPLOY_USER         — Utilisateur SSH de déploiement (ex: liberlo)
 
 on:
   push:
@@ -6,17 +20,23 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy-re7:
-    name: Deploy to re7 environment
+  deploy-staging:
+    name: Deploy to staging
     runs-on: ubuntu-latest
-    environment: re7
+    environment:
+      name: re7
+      url: https://re7-knowledge.liberlo.com
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
+
+      # ── Build backend ────────────────────────────────────────────────────────
 
       - name: Install backend dependencies
         run: cd backend && npm ci
@@ -26,21 +46,118 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://placeholder:placeholder@localhost:5432/placeholder' }}
 
-      - name: Run database migrations
-        if: ${{ secrets.DATABASE_URL != '' }}
-        run: cd backend && npx prisma migrate deploy
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
-      - name: Build backend
+      - name: Build backend (TypeScript)
         run: cd backend && npm run build
 
-      - name: Build frontend
-        run: cd frontend && npm ci && npm run build
-        env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL || 'http://localhost:3001' }}
+      # ── Build frontend ───────────────────────────────────────────────────────
 
-      # TODO: Configurer les étapes de déploiement re7 selon l'infrastructure choisie
-      # Exemples : SSH + rsync, Railway, Render, Fly.io, docker build+push
-      - name: Deploy (à configurer)
-        run: echo "Étapes de déploiement re7 à configurer selon l'infrastructure"
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+
+      - name: Build frontend
+        run: cd frontend && npm run build
+        env:
+          VITE_API_URL: https://api.re7-knowledge.liberlo.com
+
+      # ── Docker — build & push ────────────────────────────────────────────────
+
+      - name: Log in to Liberlo registry
+        if: ${{ secrets.REGISTRY != '' && secrets.REGISTRY_TOKEN != '' }}
+        run: |
+          echo "${{ secrets.REGISTRY_TOKEN }}" \
+            | docker login "${{ secrets.REGISTRY }}" \
+                -u "${{ secrets.REGISTRY_USER }}" \
+                --password-stdin
+
+      - name: Build Docker images
+        if: ${{ secrets.REGISTRY != '' }}
+        run: |
+          docker build \
+            --label "git.sha=${{ github.sha }}" \
+            --label "git.ref=${{ github.ref_name }}" \
+            -t "${{ secrets.REGISTRY }}/liberlo-knowledge-backend:re7-${{ github.sha }}" \
+            -t "${{ secrets.REGISTRY }}/liberlo-knowledge-backend:staging-latest" \
+            ./backend
+
+          docker build \
+            --label "git.sha=${{ github.sha }}" \
+            --label "git.ref=${{ github.ref_name }}" \
+            -t "${{ secrets.REGISTRY }}/liberlo-knowledge-frontend:re7-${{ github.sha }}" \
+            -t "${{ secrets.REGISTRY }}/liberlo-knowledge-frontend:staging-latest" \
+            ./frontend
+
+      - name: Push Docker images
+        if: ${{ secrets.REGISTRY != '' && secrets.REGISTRY_TOKEN != '' }}
+        run: |
+          docker push "${{ secrets.REGISTRY }}/liberlo-knowledge-backend:re7-${{ github.sha }}"
+          docker push "${{ secrets.REGISTRY }}/liberlo-knowledge-backend:staging-latest"
+          docker push "${{ secrets.REGISTRY }}/liberlo-knowledge-frontend:re7-${{ github.sha }}"
+          docker push "${{ secrets.REGISTRY }}/liberlo-knowledge-frontend:staging-latest"
+
+      # ── Deploy via SSH ───────────────────────────────────────────────────────
+
+      - name: Configure SSH key
+        if: ${{ secrets.SSH_PRIVATE_KEY != '' && secrets.STAGING_HOST != '' }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.STAGING_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Run database migrations
+        if: ${{ secrets.DATABASE_URL != '' && secrets.SSH_PRIVATE_KEY != '' && secrets.STAGING_HOST != '' }}
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+              "${{ secrets.DEPLOY_USER || 'liberlo' }}@${{ secrets.STAGING_HOST }}" \
+              "cd /opt/liberlo-knowledge && \
+               DATABASE_URL='${{ secrets.DATABASE_URL }}' \
+               docker compose exec -T backend npx prisma migrate deploy"
+
+      - name: Rolling restart — staging
+        if: ${{ secrets.SSH_PRIVATE_KEY != '' && secrets.STAGING_HOST != '' }}
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+              "${{ secrets.DEPLOY_USER || 'liberlo' }}@${{ secrets.STAGING_HOST }}" \
+              "cd /opt/liberlo-knowledge && \
+               BACKEND_IMAGE='${{ secrets.REGISTRY }}/liberlo-knowledge-backend:re7-${{ github.sha }}' \
+               FRONTEND_IMAGE='${{ secrets.REGISTRY }}/liberlo-knowledge-frontend:re7-${{ github.sha }}' \
+               docker compose pull && \
+               docker compose up -d --remove-orphans && \
+               docker image prune -f"
+
+      # ── Health check ─────────────────────────────────────────────────────────
+
+      - name: Health check — re7-knowledge.liberlo.com
+        if: ${{ secrets.STAGING_HOST != '' }}
+        run: |
+          echo "⏳ Attente du démarrage des conteneurs..."
+          sleep 10
+          for i in {1..12}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              https://re7-knowledge.liberlo.com/api/health || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Staging opérationnel (HTTP $STATUS)"
+              exit 0
+            fi
+            echo "   Tentative $i/12 — HTTP $STATUS — retry dans 5s..."
+            sleep 5
+          done
+          echo "❌ Health check échoué après 60s"
+          exit 1
+
+      # ── Job summary ──────────────────────────────────────────────────────────
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "## 🚀 Déploiement Staging" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| | |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Environnement | **Staging** |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| URL | https://re7-knowledge.liberlo.com |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| API | https://api.re7-knowledge.liberlo.com |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Commit | \`${{ github.sha }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Branche | \`${{ github.ref_name }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Déclenché par | ${{ github.actor }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Date | $(date -u '+%Y-%m-%d %H:%M UTC') |" >> "$GITHUB_STEP_SUMMARY"
