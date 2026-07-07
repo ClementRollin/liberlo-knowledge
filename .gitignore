@@ -52,3 +52,9 @@ docker/volumes/
 # Fichiers temporaires
 *.tmp
 *.temp
+
+# Claude Code — paramètres locaux (permissions propres à la machine)
+.claude/settings.local.json
+
+# Répertoires générés par les plugins Claude Code
+liberlo-claude-config/

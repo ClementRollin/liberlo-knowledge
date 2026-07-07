@@ -6,6 +6,7 @@ export interface User {
   role: Role
   serviceId: string | null
   isActive: boolean
+  service: Pick<Service, 'id' | 'name' | 'slug'> | null
 }
 
 export interface Service {
@@ -40,6 +41,33 @@ export interface SearchResult {
   author: Pick<User, 'id' | 'email'>
   updatedAt: string
   score: number
+}
+
+export type MessageRole = 'USER' | 'ASSISTANT'
+
+export interface Message {
+  id: string
+  conversationId: string
+  role: MessageRole
+  content: string
+  results: SearchResult[] | null
+  createdAt: string
+}
+
+export interface Conversation {
+  id: string
+  title: string
+  createdAt: string
+  updatedAt: string
+  messages: Message[]
+}
+
+export interface ConversationPreview {
+  id: string
+  title: string
+  createdAt: string
+  updatedAt: string
+  messages: Pick<Message, 'content' | 'role'>[]
 }
 
 export interface ApiError {

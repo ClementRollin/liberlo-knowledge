@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import AppHeader from '@/components/layout/AppHeader.vue'
 import { useApi } from '@/composables/useApi'
 import { useAuthStore } from '@/stores/auth'
 import type { Article } from '@/types'
@@ -23,10 +22,8 @@ onMounted(async () => {
 
 <template>
   <!-- Dashboard RESPONSABLE — route /dashboard -->
-  <div class="min-h-screen flex flex-col bg-white">
-    <AppHeader />
-
-    <main class="flex-1 px-12 py-10">
+  <div class="min-h-full bg-white">
+    <div class="px-12 py-10">
       <div class="flex items-center justify-between mb-8">
         <h1 class="text-2xl font-semibold text-gray-900">
           Mes articles — {{ auth.user?.serviceId ? 'Service' : '' }}
@@ -77,6 +74,6 @@ onMounted(async () => {
       <p v-if="!loading && articles.length === 0" class="text-center text-gray-400 py-12">
         Aucun article pour votre service.
       </p>
-    </main>
+    </div>
   </div>
 </template>

@@ -1,0 +1,28 @@
+name: CI — Production (main)
+
+# Audit de sécurité requis avant tout merge dans main.
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+
+  # ─── Security audit ────────────────────────────────────────────────────────
+  security-audit:
+    name: Security audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Audit backend dependencies
+        # --audit-level=critical: high vulns (multer via @nestjs/platform-express) have no
+        # non-breaking fix available upstream; critical threshold is appropriate for this prototype
+        run: cd backend && npm ci --ignore-scripts && npm audit --audit-level=critical
+
+      - name: Audit frontend dependencies
+        run: cd frontend && npm ci --ignore-scripts && npm audit --audit-level=critical

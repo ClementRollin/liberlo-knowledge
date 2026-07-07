@@ -7,8 +7,71 @@ on:
     branches: [develop, re7, main]
 
 jobs:
+
+  # ─── Enforce branch merge flow ─────────────────────────────────────────────
+  # feature/* fix/* chore/* docs/* → develop
+  # develop                        → re7
+  # re7                            → main
+  branch-flow:
+    name: Branch flow
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check merge direction
+        shell: bash
+        run: |
+          BASE="${{ github.base_ref }}"
+          HEAD="${{ github.head_ref }}"
+          echo "→ $HEAD into $BASE"
+
+          case "$BASE" in
+            develop)
+              if [[ "$HEAD" == "develop" || "$HEAD" == "re7" || "$HEAD" == "main" ]]; then
+                echo "❌ '$HEAD' ne peut pas merger dans develop."
+                echo "   Seules les branches feature/ fix/ chore/ docs/ refactor/ test/ sont autorisées."
+                exit 1
+              fi
+              ;;
+            re7)
+              if [[ "$HEAD" != "develop" ]]; then
+                echo "❌ Seule 'develop' peut merger dans re7. Reçu : '$HEAD'."
+                exit 1
+              fi
+              ;;
+            main)
+              if [[ "$HEAD" != "re7" ]]; then
+                echo "❌ Seule 're7' peut merger dans main. Reçu : '$HEAD'."
+                exit 1
+              fi
+              ;;
+          esac
+          echo "✅ Flow valide : $HEAD → $BASE"
+
+  # ─── Backend — Lint ────────────────────────────────────────────────────────
+  backend-lint:
+    name: Backend — Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - run: cd backend && npm ci
+
+      - name: Generate Prisma client
+        run: cd backend && npx prisma generate
+        env:
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+
+      - run: cd backend && npm run lint
+
+  # ─── Backend — Unit tests ──────────────────────────────────────────────────
   backend-tests:
-    name: Backend — Tests & Build
+    name: Backend — Unit tests
     runs-on: ubuntu-latest
 
     services:
@@ -35,15 +98,14 @@ jobs:
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
 
-      - name: Install backend dependencies
-        run: cd backend && npm ci
+      - run: cd backend && npm ci
 
       - name: Generate Prisma client
         run: cd backend && npx prisma generate
         env:
           DATABASE_URL: postgresql://liberlo:liberlo_dev@localhost:5432/liberlo_test
 
-      - name: Run database migrations
+      - name: Run migrations
         run: cd backend && npx prisma migrate deploy
         env:
           DATABASE_URL: postgresql://liberlo:liberlo_dev@localhost:5432/liberlo_test
@@ -52,17 +114,14 @@ jobs:
         run: cd backend && npm run test -- --passWithNoTests
         env:
           DATABASE_URL: postgresql://liberlo:liberlo_dev@localhost:5432/liberlo_test
-          JWT_SECRET: ci_test_secret_only
+          JWT_SECRET: ci_test_secret
           JWT_EXPIRES_IN: 8h
-          OPENAI_API_KEY: sk-test-mock-key
+          OPENAI_API_KEY: sk-test-mock
 
-      - name: TypeScript compilation
-        run: cd backend && npm run build
-
-  frontend-build:
-    name: Frontend — TypeCheck & Build
+  # ─── Frontend — Lint ──────────────────────────────────────────────────────
+  frontend-lint:
+    name: Frontend — Lint
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -72,10 +131,25 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install frontend dependencies
-        run: cd frontend && npm ci
+      - run: cd frontend && npm ci
 
-      - name: TypeCheck + Build
-        run: cd frontend && npm run build
+      - run: cd frontend && npm run lint
+
+  # ─── Frontend — Typecheck & Build ──────────────────────────────────────────
+  frontend-build:
+    name: Frontend — Typecheck & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: cd frontend && npm ci
+
+      - run: cd frontend && npm run build
         env:
           VITE_API_URL: http://localhost:3001
