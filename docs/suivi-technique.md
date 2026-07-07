@@ -23,13 +23,14 @@ Ce document retrace les décisions techniques, l'évolution de l'implémentation
 
 ```
 AppModule
-├── AuthModule        → POST /auth/login, /auth/activate
-├── ArticlesModule    → CRUD articles (scoped par service)
-├── SearchModule      → POST /search (tokenized keyword search)
-├── ConversationsModule → conversations multi-tours persistantes
-├── ServicesModule    → GET /services, /services/:slug
-├── AdminModule       → GET /admin/articles (SUPER_ADMIN uniquement)
-└── PrismaModule      → accès BDD partagé (global)
+├── AuthModule           → POST /auth/login, /auth/activate
+├── ArticlesModule       → CRUD articles (scoped par service)
+├── SearchModule         → POST /search (hybride : sémantique + tokenisé)
+├── ConversationsModule  → conversations multi-tours persistantes
+├── ServicesModule       → GET /services, /services/:slug
+├── AdminModule          → GET /admin/articles (SUPER_ADMIN uniquement)
+├── EmbeddingModule      → generateEmbedding() via OpenAI — partagé par Articles + Search
+└── PrismaModule         → accès BDD partagé (global)
 ```
 
 Chaque module suit le pattern : **Controller → Service → Prisma**
@@ -52,7 +53,7 @@ Service
 Article
   id, title, content, summary, type, serviceId, visibility
   status (DRAFT | PUBLISHED), tags[], authorId
-  embedding (vector — pgvector, à implémenter)
+  embedding (vector(1536) — pgvector, alimenté à la création/MàJ)
   createdAt, updatedAt
 
 Conversation
@@ -141,10 +142,10 @@ feature/* → develop → re7 → main
 ```
 Chaque étape a ses propres checks GitHub Actions. Le merge est automatique si tous les checks sont verts.
 
-**Tests backend (unit) — 30 tests :**
-- `SearchService` : tokenisation, stop-words, scoring, filtres
+**Tests backend (unit) — 31 tests :**
+- `SearchService` : tokenisation, stop-words, scoring, filtres, délégation embedding
 - `AuthService` : login/logout, comptes inactifs, activate, token expiré
-- `ArticlesService` : CRUD avec guards de service
+- `ArticlesService` : CRUD avec guards de service, indexation embedding
 
 **Tests backend (E2E) — 28 tests :**
 - Couverture complète : Auth, Articles, Search, Conversations, Admin
@@ -165,28 +166,97 @@ Chaque étape a ses propres checks GitHub Actions. Le merge est automatique si t
 
 ---
 
+### Phase 5 — Recherche sémantique pgvector (embeddings actifs)
+
+**Objectif :** alimenter le champ `embedding` de chaque article et passer d'un moteur purement textuel à un moteur hybride (sémantique + tokenisé).
+
+**Choix du modèle :** OpenAI `text-embedding-3-small` (1536 dimensions).
+Justification : qualité élevée, API simple, SDK officiel Node.js, coût négligeable sur les volumes d'un prototype.
+
+**EmbeddingModule (nouveau module partagé) :**
+```typescript
+// EmbeddingService.generateEmbedding(text) :
+// 1. Concatène title + content + summary + tags (texte brut)
+// 2. Appelle openai.embeddings.create({ model: 'text-embedding-3-small', input })
+// 3. Retourne number[1536]
+// Sur erreur API : propage ServiceUnavailableException (erreur explicite côté frontend)
+```
+
+**Intégration dans ArticlesService :**
+- `create()` : après `prisma.article.create()`, appelle `indexEmbedding()` → `$executeRaw UPDATE "Article" SET embedding = $1::vector WHERE id = $2`
+- `update()` : idem si le contenu est modifié
+- Erreur d'indexation → `ServiceUnavailableException` (503) — le frontend affiche "Service temporairement indisponible"
+
+**Raison du bypass Prisma :** le type `Unsupported("vector(1536)")` dans le schéma Prisma ne supporte pas les opérations typées. Toutes les lectures/écritures sur le champ `embedding` passent par `$queryRaw` / `$executeRaw`.
+
+**Moteur de recherche hybride :**
+```
+POST /search → SearchService.search()
+  ├── [parallel] semanticSearch(query) :
+  │     generateEmbedding(query) → pgVector
+  │     $queryRaw: SELECT ..., 1-(embedding <=> $1::vector) AS similarity
+  │              ORDER BY embedding <=> $1::vector LIMIT 15
+  │     score = Math.round(similarity × 10)
+  │     → filtré : score > 0 uniquement
+  │
+  └── [parallel] prisma.article.findMany(keyword conditions)
+        score = phrase match (+10) + token title (+3) + token texte (+1)
+        → filtré : score > 0 uniquement
+  
+  Fusion : déduplique par id, trie par score desc, slice(0, 20)
+```
+
+**Approche de test E2E :** le mock `EmbeddingService` génère des vecteurs unitaires aléatoires par appel (non constants) — propriété des vecteurs aléatoires en haute dimension : similarité cosinus ≈ 0 (std dev ≈ 0.026). Cela garantit que les articles indexés n'apparaissent pas dans les résultats sémantiques de requêtes non corrélées.
+
+---
+
+### Phase 6 — Environnements de déploiement Liberlo (CI/CD)
+
+**Objectif :** simuler le pipeline de déploiement Liberlo pour la soutenance, sans exposer les environnements réels.
+
+**Deux environnements :**
+
+| Environnement | Branche | URL simulée |
+|---|---|---|
+| Staging | `re7` | `https://re7-knowledge.liberlo.com` |
+| Production | `main` | `https://knowledge.liberlo.com` |
+
+**Pipeline staging (`deploy-re7.yml`) :**
+1. Build backend (`npm ci` + `prisma generate` + `tsc`)
+2. Build frontend (`VITE_API_URL=https://api.re7-knowledge.liberlo.com`)
+3. Docker build + push (conditionnel si secrets `REGISTRY` présents)
+4. SSH → `prisma migrate deploy` (conditionnel)
+5. Rolling restart (`docker compose pull && up -d`)
+6. Health check : `GET /api/health` → 200 (12 tentatives × 5s)
+
+**Pipeline production (`deploy-production.yml`) :**
+- Identique + secrets obligatoires (pas de skip conditionnel)
+- Health check : 18 tentatives × 5s (90s)
+- Smoke test : `POST /api/auth/login {}` → 400 (validation active = API vivante)
+- Notifications Slack (succès + échec)
+
+**Endpoint santé ajouté :**
+```typescript
+// AppController
+@Get('health')
+health() { return { status: 'ok', timestamp: new Date().toISOString() }; }
+```
+
+**Note académique :** ces workflows sont conçus pour être fonctionnellement corrects mais ne sont pas connectés aux serveurs Liberlo réels. Ils démontrent la maîtrise du pattern CI/CD (Docker, SSH deploy, health checks) sans accès aux environnements de production.
+
+---
+
 ## Recherche sémantique — état et roadmap
 
-### État actuel (MVP)
-Moteur de recherche textuel tokenisé (Phase 3). Pas d'embeddings actifs.
+### État actuel
+Moteur hybride actif depuis la Phase 5 :
+- **Recherche sémantique** via OpenAI `text-embedding-3-small` + pgvector (similarité cosinus)
+- **Recherche tokenisée** en fallback et complément (mots-clés, stop-words, scoring)
+- Fusion des résultats : dédupliqués, triés par score, limités à 20 résultats
 
-### Décision sur les embeddings
-Le champ `embedding vector(1536)` est présent dans le schéma Prisma mais non alimenté.
-Le choix du modèle d'embeddings est délibérément différé pour la soutenance :
-
-**Option A — OpenAI text-embedding-3-small** (1536 dims)
-- ✅ Qualité élevée, API simple
-- ❌ Coût à l'usage, dépendance externe
-
-**Option B — Mistral Embed** (1024 dims)
-- ✅ Européen, RGPD-friendly
-- ❌ API moins mature
-
-**Option C — Modèle local (Ollama + nomic-embed-text)**
-- ✅ Gratuit, offline, RGPD total
-- ❌ Infrastructure locale requise
-
-→ Pour la démo : l'OpenAI SDK est installé (`openai` package), la clé est configurée en env var. L'intégration embeddings sera activée post-soutenance ou présentée comme roadmap v1.1.
+Le choix de **OpenAI text-embedding-3-small** a été retenu pour sa qualité et la maturité de l'API. Les alternatives évaluées :
+- Mistral Embed : RGPD-friendly mais API moins mature
+- Modèle local (Ollama + nomic-embed-text) : gratuit mais infrastructure supplémentaire requise
 
 ### RAG (v1.1)
 Récupération des N articles les plus proches → injection dans le prompt LLM → réponse synthétique avec citations. Non implémenté, présenté comme évolution.
@@ -236,8 +306,11 @@ Protection XSS : un token en localStorage est accessible depuis JavaScript, susc
 ### Pourquoi une conversation persistée côté serveur ?
 Permet à un utilisateur de retrouver son historique de recherche entre sessions. Aussi : les résultats de recherche (JSON) sont stockés avec chaque message ASSISTANT, rendant la conversation complète même si les articles changent.
 
-### Pourquoi le moteur tokenisé plutôt que pgvector pour le MVP ?
-pgvector nécessite un modèle d'embeddings en production (coût API ou infrastructure). Le moteur tokenisé est déterministe, rapide, et suffisant pour démontrer le concept en soutenance. La transition vers pgvector est documentée comme roadmap et le schéma est déjà prêt.
+### Pourquoi un moteur hybride (sémantique + tokenisé) ?
+Le moteur sémantique seul peut rater des correspondances exactes de mots-clés techniques (acronymes, noms propres). Le moteur tokenisé seul ne comprend pas le sens. La fusion des deux donne les meilleures performances sur la démo : une requête "process escalade" trouve les bons articles même si les mots n'apparaissent pas tels quels.
+
+### Pourquoi `$queryRaw` / `$executeRaw` pour pgvector ?
+Prisma ne supporte pas nativement le type `vector` — le champ est déclaré `Unsupported("vector(1536)")` dans le schéma. Les opérations sur ce champ (écriture de l'embedding, calcul de distance cosinus `<=>`) passent obligatoirement par le SQL brut via `$executeRaw` / `$queryRaw`.
 
 ---
 
