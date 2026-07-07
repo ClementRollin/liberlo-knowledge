@@ -44,6 +44,7 @@ export class SearchService {
         id: true,
         title: true,
         summary: true,
+        content: true,
         tags: true,
         service: { select: { id: true, name: true, slug: true } },
         author: { select: { id: true, email: true } },
