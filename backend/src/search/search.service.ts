@@ -1,15 +1,54 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmbeddingService } from '../embedding/embedding.service';
 import type { User } from '@prisma/client';
 import type { SearchDto } from './dto/search.dto';
 
-const STOP_WORDS = new Set(['le', 'la', 'les', 'de', 'du', 'des', 'un', 'une', 'et', 'en', 'au', 'aux', 'pour', 'par', 'sur', 'que', 'qui', 'est', 'dans', 'avec']);
+const STOP_WORDS = new Set([
+  'le',
+  'la',
+  'les',
+  'de',
+  'du',
+  'des',
+  'un',
+  'une',
+  'et',
+  'en',
+  'au',
+  'aux',
+  'pour',
+  'par',
+  'sur',
+  'que',
+  'qui',
+  'est',
+  'dans',
+  'avec',
+]);
+
+interface SemanticRow {
+  id: string;
+  title: string;
+  summary: string | null;
+  content: string;
+  tags: string[];
+  service_id: string;
+  service_name: string;
+  service_slug: string;
+  author_id: string;
+  author_email: string;
+  updated_at: Date;
+  similarity: number;
+}
 
 @Injectable()
 export class SearchService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private embedding: EmbeddingService,
+  ) {}
 
-  // TODO: remplacer par similarité cosinus pgvector quand le modèle d'embeddings sera retenu
   async search(
     dto: SearchDto,
     _requester: Pick<User, 'id' | 'role' | 'serviceId'>,
@@ -17,47 +56,63 @@ export class SearchService {
     const tokens = dto.query
       .toLowerCase()
       .split(/[\s\-_/]+/)
-      .map(w => w.replace(/[^a-zàâçéèêëîïôùûüœ]/g, ''))
-      .filter(w => w.length > 2 && !STOP_WORDS.has(w));
+      .map((w) => w.replace(/[^a-zàâçéèêëîïôùûüœ]/g, ''))
+      .filter((w) => w.length > 2 && !STOP_WORDS.has(w));
 
-    // Cherche la phrase complète OU chaque mot individuel
     const phraseConditions = [
       { title: { contains: dto.query, mode: 'insensitive' as const } },
       { content: { contains: dto.query, mode: 'insensitive' as const } },
       { summary: { contains: dto.query, mode: 'insensitive' as const } },
     ];
 
-    const tokenConditions = tokens.flatMap(token => [
+    const tokenConditions = tokens.flatMap((token) => [
       { title: { contains: token, mode: 'insensitive' as const } },
       { content: { contains: token, mode: 'insensitive' as const } },
       { summary: { contains: token, mode: 'insensitive' as const } },
       { tags: { has: token } },
     ]);
 
-    const results = await this.prisma.article.findMany({
-      where: {
-        status: 'PUBLISHED',
-        OR: [...phraseConditions, ...tokenConditions],
-        ...(dto.serviceSlug ? { service: { slug: dto.serviceSlug } } : {}),
-      },
-      select: {
-        id: true,
-        title: true,
-        summary: true,
-        content: true,
-        tags: true,
-        service: { select: { id: true, name: true, slug: true } },
-        author: { select: { id: true, email: true } },
-        updatedAt: true,
-      },
-      take: 20,
-      orderBy: { updatedAt: 'desc' },
-    });
+    const serviceSlug = dto.serviceSlug;
 
-    // Score simple : phrase complète > plusieurs tokens matchés > un seul token
+    const [semanticRows, keywordArticles] = await Promise.all([
+      this.semanticSearch(dto.query, serviceSlug),
+      this.prisma.article.findMany({
+        where: {
+          status: 'PUBLISHED',
+          OR: [...phraseConditions, ...tokenConditions],
+          ...(serviceSlug ? { service: { slug: serviceSlug } } : {}),
+        },
+        select: {
+          id: true,
+          title: true,
+          summary: true,
+          content: true,
+          tags: true,
+          service: { select: { id: true, name: true, slug: true } },
+          author: { select: { id: true, email: true } },
+          updatedAt: true,
+        },
+        take: 20,
+        orderBy: { updatedAt: 'desc' },
+      }),
+    ]);
+
+    const semanticResults = semanticRows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      summary: r.summary,
+      content: r.content,
+      tags: r.tags,
+      service: { id: r.service_id, name: r.service_name, slug: r.service_slug },
+      author: { id: r.author_id, email: r.author_email },
+      updatedAt: r.updated_at,
+      score: Math.round(r.similarity * 10),
+    }));
+
     const query = dto.query.toLowerCase();
-    const scored = results.map(r => {
-      const text = `${r.title} ${r.summary ?? ''} ${r.content ?? ''} ${r.tags.join(' ')}`.toLowerCase();
+    const keywordResults = keywordArticles.map((r) => {
+      const text =
+        `${r.title} ${r.summary ?? ''} ${r.content ?? ''} ${r.tags.join(' ')}`.toLowerCase();
       let score = 0;
       if (text.includes(query)) score += 10;
       for (const token of tokens) {
@@ -67,8 +122,52 @@ export class SearchService {
       return { ...r, score };
     });
 
-    return scored
-      .filter(r => r.score > 0)
-      .sort((a, b) => b.score - a.score);
+    const seen = new Set(semanticResults.map((r) => r.id));
+    const merged = [
+      ...semanticResults,
+      ...keywordResults.filter((r) => r.score > 0 && !seen.has(r.id)),
+    ].sort((a, b) => b.score - a.score);
+
+    return merged.slice(0, 20);
+  }
+
+  private async semanticSearch(
+    query: string,
+    serviceSlug?: string,
+  ): Promise<SemanticRow[]> {
+    try {
+      const vector = await this.embedding.generateEmbedding(query);
+      const pgVector = `[${vector.join(',')}]`;
+
+      if (serviceSlug) {
+        return this.prisma.$queryRaw<SemanticRow[]>`
+          SELECT a.id, a.title, a.summary, a.content, a.tags,
+            s.id AS service_id, s.name AS service_name, s.slug AS service_slug,
+            u.id AS author_id, u.email AS author_email, a."updatedAt" AS updated_at,
+            1 - (a.embedding <=> ${pgVector}::vector) AS similarity
+          FROM "Article" a
+          JOIN "Service" s ON s.id = a."serviceId"
+          JOIN "User" u ON u.id = a."authorId"
+          WHERE a.status = 'PUBLISHED' AND a.embedding IS NOT NULL AND s.slug = ${serviceSlug}
+          ORDER BY a.embedding <=> ${pgVector}::vector
+          LIMIT 15
+        `;
+      }
+
+      return this.prisma.$queryRaw<SemanticRow[]>`
+        SELECT a.id, a.title, a.summary, a.content, a.tags,
+          s.id AS service_id, s.name AS service_name, s.slug AS service_slug,
+          u.id AS author_id, u.email AS author_email, a."updatedAt" AS updated_at,
+          1 - (a.embedding <=> ${pgVector}::vector) AS similarity
+        FROM "Article" a
+        JOIN "Service" s ON s.id = a."serviceId"
+        JOIN "User" u ON u.id = a."authorId"
+        WHERE a.status = 'PUBLISHED' AND a.embedding IS NOT NULL
+        ORDER BY a.embedding <=> ${pgVector}::vector
+        LIMIT 15
+      `;
+    } catch {
+      return [];
+    }
   }
 }
