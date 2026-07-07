@@ -27,13 +27,14 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    env_file:
+      - ./backend/.env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-liberlo}:${POSTGRES_PASSWORD:-liberlo_dev}@db:5432/${POSTGRES_DB:-liberlo_kb}?schema=public
       JWT_SECRET: ${JWT_SECRET:-changeme_in_production_use_strong_random_secret}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
       PORT: 3001
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     ports:
       - "3001:3001"
     volumes:
