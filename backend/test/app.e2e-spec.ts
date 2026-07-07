@@ -5,6 +5,7 @@ import { App } from 'supertest/types';
 import * as bcrypt from 'bcrypt';
 import { AppModule } from './../src/app.module';
 import { PrismaService } from './../src/prisma/prisma.service';
+import { EmbeddingService } from './../src/embedding/embedding.service';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -20,7 +21,11 @@ async function seed(prisma: PrismaService) {
   const csmService = await prisma.service.upsert({
     where: { slug: 'csm-e2e' },
     update: {},
-    create: { name: 'CSM E2E', slug: 'csm-e2e', description: 'Test CSM service' },
+    create: {
+      name: 'CSM E2E',
+      slug: 'csm-e2e',
+      description: 'Test CSM service',
+    },
   });
 
   const admin = await prisma.user.upsert({
@@ -83,12 +88,22 @@ async function seed(prisma: PrismaService) {
     },
   });
 
-  return { admin, responsable, otherResponsable, collaborator, itService, csmService, article };
+  return {
+    admin,
+    responsable,
+    otherResponsable,
+    collaborator,
+    itService,
+    csmService,
+    article,
+  };
 }
 
 async function cleanup(prisma: PrismaService) {
   await prisma.message.deleteMany({
-    where: { conversation: { user: { email: { endsWith: '-e2e@liberlo.com' } } } },
+    where: {
+      conversation: { user: { email: { endsWith: '-e2e@liberlo.com' } } },
+    },
   });
   await prisma.conversation.deleteMany({
     where: { user: { email: { endsWith: '-e2e@liberlo.com' } } },
@@ -109,18 +124,32 @@ async function cleanup(prisma: PrismaService) {
 describe('Liberlo API (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
-  let tokens: { admin: string; responsable: string; otherResponsable: string; collaborator: string };
+  let tokens: {
+    admin: string;
+    responsable: string;
+    otherResponsable: string;
+    collaborator: string;
+  };
   let articleId: string;
   let itServiceSlug: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(EmbeddingService)
+      .useValue({
+        generateEmbedding: jest
+          .fn()
+          .mockResolvedValue(new Array(1536).fill(0.1)),
+      })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     await app.init();
 
     prisma = moduleFixture.get<PrismaService>(PrismaService);
@@ -245,7 +274,13 @@ describe('Liberlo API (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post('/api/articles')
         .set('Authorization', `Bearer ${tokens.responsable}`)
-        .send({ title: 'Nouvel article E2E', content: 'Contenu test', summary: '', tags: [], status: 'DRAFT' })
+        .send({
+          title: 'Nouvel article E2E',
+          content: 'Contenu test',
+          summary: '',
+          tags: [],
+          status: 'DRAFT',
+        })
         .expect(201);
 
       expect(res.body.title).toBe('Nouvel article E2E');
@@ -359,7 +394,9 @@ describe('Liberlo API (e2e)', () => {
         .expect(200);
 
       expect(Array.isArray(res.body)).toBe(true);
-      expect(res.body.find((c: { id: string }) => c.id === convId)).toBeDefined();
+      expect(
+        res.body.find((c: { id: string }) => c.id === convId),
+      ).toBeDefined();
     });
 
     it('GET /api/conversations/:id — should return full conversation', async () => {
