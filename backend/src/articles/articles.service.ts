@@ -101,6 +101,22 @@ export class ArticlesService {
     await this.prisma.article.delete({ where: { id } });
   }
 
+  async reindexAll(): Promise<{ indexed: number; errors: number }> {
+    const articles = await this.prisma.$queryRaw<
+      { id: string; title: string; summary: string | null; content: string; tags: string[] }[]
+    >`SELECT id, title, summary, content, tags FROM "Article" WHERE embedding IS NULL`;
+
+    let errors = 0;
+    for (const a of articles) {
+      try {
+        await this.indexEmbedding(a.id, a.title, a.summary, a.tags, a.content);
+      } catch {
+        errors++;
+      }
+    }
+    return { indexed: articles.length - errors, errors };
+  }
+
   private async indexEmbedding(
     articleId: string,
     title: string,

@@ -70,7 +70,8 @@ model Article {
   status     ArticleStatus @default(DRAFT)
   tags       String[]
   authorId   String
-  // Dimension 1536 — OpenAI text-embedding-3-small / ada-002 (à ajuster selon le modèle retenu)
+  sourceUrl  String?       @unique
+  // Dimension 1536 — OpenAI text-embedding-3-small
   embedding  Unsupported("vector(1536)")?
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
@@ -81,6 +82,17 @@ model Article {
   @@index([serviceId])
   @@index([authorId])
   @@index([status])
+}
+
+model ImportSettings {
+  id                String    @id @default(uuid())
+  driveAccessToken  String?
+  driveRefreshToken String?
+  driveTokenExpiry  DateTime?
+  confluenceBaseUrl String?
+  confluenceEmail   String?
+  confluenceToken   String?
+  updatedAt         DateTime  @updatedAt
 }
 
 model Conversation {
