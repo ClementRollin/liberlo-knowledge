@@ -43,10 +43,12 @@ const router = createRouter({
           name: 'article',
           component: () => import('@/pages/ArticlePage.vue'),
         },
+
+        // RESPONSABLE
         {
           path: 'dashboard',
           name: 'dashboard',
-          component: () => import('@/pages/DashboardPage.vue'),
+          component: () => import('@/pages/dashboard/DashboardPage.vue'),
           meta: { roles: ['RESPONSABLE'] },
         },
         {
@@ -61,12 +63,21 @@ const router = createRouter({
           component: () => import('@/pages/ArticleFormPage.vue'),
           meta: { roles: ['RESPONSABLE'] },
         },
+
+        // SUPER_ADMIN
         {
           path: 'dashboard/global',
           name: 'dashboard-global',
-          component: () => import('@/pages/DashboardGlobalPage.vue'),
+          component: () => import('@/pages/dashboard/DashboardGlobalPage.vue'),
           meta: { roles: ['SUPER_ADMIN'] },
         },
+        {
+          path: 'admin/users',
+          name: 'admin-users',
+          component: () => import('@/pages/admin/UsersPage.vue'),
+          meta: { roles: ['SUPER_ADMIN'] },
+        },
+
         {
           path: '403',
           name: 'forbidden',
