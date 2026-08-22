@@ -164,6 +164,7 @@ export class SearchService {
           WHERE a.status = 'PUBLISHED' AND a.embedding IS NOT NULL
             AND a.visibility != 'INTERNAL'
             AND s.slug = ${serviceSlug}
+            AND a.embedding <=> ${pgVector}::vector < 0.9
           ORDER BY a.embedding <=> ${pgVector}::vector
           LIMIT 15
         `;
@@ -179,6 +180,7 @@ export class SearchService {
           JOIN "Service" s ON s.id = a."serviceId"
           JOIN "User" u ON u.id = a."authorId"
           WHERE a.status = 'PUBLISHED' AND a.embedding IS NOT NULL AND s.slug = ${serviceSlug}
+            AND a.embedding <=> ${pgVector}::vector < 0.9
           ORDER BY a.embedding <=> ${pgVector}::vector
           LIMIT 15
         `;
@@ -195,6 +197,7 @@ export class SearchService {
           JOIN "User" u ON u.id = a."authorId"
           WHERE a.status = 'PUBLISHED' AND a.embedding IS NOT NULL
             AND a.visibility != 'INTERNAL'
+            AND a.embedding <=> ${pgVector}::vector < 0.9
           ORDER BY a.embedding <=> ${pgVector}::vector
           LIMIT 15
         `;
@@ -209,6 +212,7 @@ export class SearchService {
         JOIN "Service" s ON s.id = a."serviceId"
         JOIN "User" u ON u.id = a."authorId"
         WHERE a.status = 'PUBLISHED' AND a.embedding IS NOT NULL
+          AND a.embedding <=> ${pgVector}::vector < 0.9
         ORDER BY a.embedding <=> ${pgVector}::vector
         LIMIT 15
       `;
