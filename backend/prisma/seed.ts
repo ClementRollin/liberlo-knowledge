@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import * as bcrypt from 'bcrypt'
+import OpenAI from 'openai'
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
 const prisma = new PrismaClient({ adapter })
@@ -799,6 +800,33 @@ async function main() {
         },
       })
     }
+  }
+
+  // 5.5 Embeddings
+  console.log('  → Embeddings (OpenAI text-embedding-3-small)...')
+  const openaiKey = process.env.OPENAI_API_KEY
+  if (!openaiKey) {
+    console.warn('  ⚠️  OPENAI_API_KEY absent — embeddings ignorés (recherche sémantique désactivée)')
+  } else {
+    const openai = new OpenAI({ apiKey: openaiKey })
+    const toIndex = await prisma.$queryRaw<
+      { id: string; title: string; summary: string | null; content: string; tags: string[] }[]
+    >`SELECT id, title, summary, content, tags FROM "Article" WHERE embedding IS NULL AND status = 'PUBLISHED'`
+
+    let indexed = 0
+    let errors = 0
+    for (const a of toIndex) {
+      try {
+        const text = [a.title, a.summary ?? '', a.tags.join(' '), a.content].filter(Boolean).join('\n')
+        const res = await openai.embeddings.create({ model: 'text-embedding-3-small', input: text })
+        const pgVector = `[${res.data[0].embedding.join(',')}]`
+        await prisma.$executeRaw`UPDATE "Article" SET embedding = ${pgVector}::vector WHERE id = ${a.id}`
+        indexed++
+      } catch {
+        errors++
+      }
+    }
+    console.log(`  ✓ ${indexed} embeddings générés${errors ? `, ${errors} erreurs` : ''}`)
   }
 
   // 6. Conversations seedées
