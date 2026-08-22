@@ -84,17 +84,23 @@
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-1">Compte créé ✓</h3>
           <p class="text-sm text-gray-500 mb-4">
-            Communiquez ce mot de passe à
+            Communiquez ces informations à
             <strong class="text-gray-800">{{ createdEmail }}</strong>.
             <span class="block mt-1 text-xs text-red-500">
-              Il ne sera plus affiché après fermeture de cette fenêtre.
+              Le mot de passe ne sera plus affiché après fermeture de cette fenêtre.
             </span>
           </p>
 
           <div
-            class="bg-gray-100 rounded-xl p-4 font-mono text-center text-xl tracking-widest text-gray-800 mb-5 select-all"
+            class="bg-gray-100 rounded-xl p-4 font-mono text-center text-xl tracking-widest text-gray-800 mb-4 select-all"
           >
             {{ generatedPassword }}
+          </div>
+
+          <!-- Lien de connexion -->
+          <div class="bg-[#f9f6ff] border border-[#e9d8ff] rounded-xl px-4 py-3 mb-5">
+            <p class="text-xs text-gray-500 mb-1">Lien de connexion à transmettre :</p>
+            <p class="text-xs font-mono text-[#6b2fa0] break-all select-all">{{ loginUrl }}</p>
           </div>
 
           <div class="flex gap-3">
@@ -102,7 +108,7 @@
               class="flex-1 bg-[#6b2fa0] text-white rounded-xl py-2.5 text-sm font-medium hover:bg-purple-800 transition-colors"
               @click="copyPassword"
             >
-              {{ isCopied ? 'Copié ✓' : 'Copier' }}
+              {{ isCopied ? 'Copié ✓' : 'Copier le mdp' }}
             </button>
             <button
               class="flex-1 border border-gray-300 rounded-xl py-2.5 text-sm hover:bg-gray-50 transition-colors"
@@ -118,7 +124,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useApi } from '@/composables/useApi'
 import { useToast } from '@/composables/useToast'
 
@@ -137,6 +143,11 @@ const isSubmitting = ref(false)
 const generatedPassword = ref<string | null>(null)
 const createdEmail = ref('')
 const isCopied = ref(false)
+
+const loginUrl = computed(() => {
+  const base = window.location.origin
+  return `${base}/auth/login`
+})
 
 async function handleSubmit() {
   isSubmitting.value = true
