@@ -74,8 +74,7 @@ export class SearchService {
 
     const serviceSlug = dto.serviceSlug;
 
-    // Filtre de visibilité : les non-SUPER_ADMIN ne voient pas les articles
-    // marqués INTERNAL (prépare l'évolution du champ visibility).
+    // Non-SUPER_ADMIN n'accèdent pas aux articles marqués INTERNAL (évolution future).
     const visibilityFilter =
       requester.role !== 'SUPER_ADMIN'
         ? { visibility: { not: 'INTERNAL' } }
@@ -120,7 +119,7 @@ export class SearchService {
     const query = dto.query.toLowerCase();
     const keywordResults = keywordArticles.map((r) => {
       const text =
-        .toLowerCase();
+        `${r.title} ${r.summary ?? ''} ${r.content ?? ''} ${r.tags.join(' ')}`.toLowerCase();
       let score = 0;
       if (text.includes(query)) score += 10;
       for (const token of tokens) {
@@ -147,26 +146,72 @@ export class SearchService {
   ): Promise<SemanticRow[]> {
     try {
       const vector = await this.embedding.generateEmbedding(query);
-      const pgVector = ;
+      const pgVector = `[${vector.join(',')}]`;
 
-      // Les non-SUPER_ADMIN ne voient pas les articles marqués INTERNAL.
-      // On duplique les branches pour conserver des requêtes paramétrées sûres
-      // (Prisma tagged templates n'acceptent pas de fragments SQL dynamiques).
+      // Prisma tagged templates ne permettent pas de fragments SQL dynamiques ;
+      // on branche sur les deux variables pour garder des requêtes paramétrées sûres.
       const filterInternal = role !== 'SUPER_ADMIN';
 
       if (serviceSlug && filterInternal) {
-        return this.prisma.<SemanticRow[]>;
+        return this.prisma.$queryRaw<SemanticRow[]>`
+          SELECT a.id, a.title, a.summary, a.content, a.tags,
+            s.id AS service_id, s.name AS service_name, s.slug AS service_slug,
+            u.id AS author_id, u.email AS author_email, a."updatedAt" AS updated_at,
+            1 - (a.embedding <=> ${pgVector}::vector) AS similarity
+          FROM "Article" a
+          JOIN "Service" s ON s.id = a."serviceId"
+          JOIN "User" u ON u.id = a."authorId"
+          WHERE a.status = 'PUBLISHED' AND a.embedding IS NOT NULL
+            AND a.visibility != 'INTERNAL'
+            AND s.slug = ${serviceSlug}
+          ORDER BY a.embedding <=> ${pgVector}::vector
+          LIMIT 15
+        `;
       }
 
       if (serviceSlug) {
-        return this.prisma.<SemanticRow[]>;
+        return this.prisma.$queryRaw<SemanticRow[]>`
+          SELECT a.id, a.title, a.summary, a.content, a.tags,
+            s.id AS service_id, s.name AS service_name, s.slug AS service_slug,
+            u.id AS author_id, u.email AS author_email, a."updatedAt" AS updated_at,
+            1 - (a.embedding <=> ${pgVector}::vector) AS similarity
+          FROM "Article" a
+          JOIN "Service" s ON s.id = a."serviceId"
+          JOIN "User" u ON u.id = a."authorId"
+          WHERE a.status = 'PUBLISHED' AND a.embedding IS NOT NULL AND s.slug = ${serviceSlug}
+          ORDER BY a.embedding <=> ${pgVector}::vector
+          LIMIT 15
+        `;
       }
 
       if (filterInternal) {
-        return this.prisma.<SemanticRow[]>;
+        return this.prisma.$queryRaw<SemanticRow[]>`
+          SELECT a.id, a.title, a.summary, a.content, a.tags,
+            s.id AS service_id, s.name AS service_name, s.slug AS service_slug,
+            u.id AS author_id, u.email AS author_email, a."updatedAt" AS updated_at,
+            1 - (a.embedding <=> ${pgVector}::vector) AS similarity
+          FROM "Article" a
+          JOIN "Service" s ON s.id = a."serviceId"
+          JOIN "User" u ON u.id = a."authorId"
+          WHERE a.status = 'PUBLISHED' AND a.embedding IS NOT NULL
+            AND a.visibility != 'INTERNAL'
+          ORDER BY a.embedding <=> ${pgVector}::vector
+          LIMIT 15
+        `;
       }
 
-      return this.prisma.<SemanticRow[]>;
+      return this.prisma.$queryRaw<SemanticRow[]>`
+        SELECT a.id, a.title, a.summary, a.content, a.tags,
+          s.id AS service_id, s.name AS service_name, s.slug AS service_slug,
+          u.id AS author_id, u.email AS author_email, a."updatedAt" AS updated_at,
+          1 - (a.embedding <=> ${pgVector}::vector) AS similarity
+        FROM "Article" a
+        JOIN "Service" s ON s.id = a."serviceId"
+        JOIN "User" u ON u.id = a."authorId"
+        WHERE a.status = 'PUBLISHED' AND a.embedding IS NOT NULL
+        ORDER BY a.embedding <=> ${pgVector}::vector
+        LIMIT 15
+      `;
     } catch {
       return [];
     }
