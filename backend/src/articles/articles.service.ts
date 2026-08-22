@@ -61,13 +61,7 @@ export class ArticlesService {
       data: { ...dto, authorId: author.id, serviceId: author.serviceId },
       select: ARTICLE_SELECT,
     });
-    await this.indexEmbedding(
-      article.id,
-      article.title,
-      article.summary,
-      article.tags,
-      article.content,
-    );
+    this.indexEmbedding(article.id, article.title, article.summary, article.tags, article.content).catch(() => {});
     return article;
   }
 
@@ -82,13 +76,7 @@ export class ArticlesService {
       data: dto,
       select: ARTICLE_SELECT,
     });
-    await this.indexEmbedding(
-      updated.id,
-      updated.title,
-      updated.summary,
-      updated.tags,
-      updated.content,
-    );
+    this.indexEmbedding(updated.id, updated.title, updated.summary, updated.tags, updated.content).catch(() => {});
     return updated;
   }
 
