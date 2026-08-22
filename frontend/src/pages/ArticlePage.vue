@@ -11,11 +11,15 @@ const api = useApi()
 
 const article = ref<Article | null>(null)
 const loading = ref(false)
+const error = ref<string | null>(null)
 
 watch(() => route.params.id, async (id) => {
   loading.value = true
+  error.value = null
   try {
     article.value = await api.get<Article>(`/articles/${id}`)
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Impossible de charger cet article.'
   } finally {
     loading.value = false
   }
@@ -48,6 +52,12 @@ watch(() => route.params.id, async (id) => {
         </div>
         <div class="h-64 bg-gray-100 animate-pulse rounded-2xl" />
       </template>
+
+      <!-- Error -->
+      <div v-else-if="error" class="rounded-2xl bg-red-50 border border-red-200 p-8 text-center">
+        <p class="text-red-700 font-medium">{{ error }}</p>
+        <p class="text-sm text-gray-400 mt-2">Vérifiez que l'article existe et que vous avez accès.</p>
+      </div>
 
       <template v-else-if="article">
         <!-- Title — Figma: section.title (30:647) -->
