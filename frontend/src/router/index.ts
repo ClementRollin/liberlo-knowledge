@@ -85,10 +85,18 @@ const router = createRouter({
         },
 
         {
+          path: 'profile',
+          name: 'profile',
+          component: () => import('@/pages/ProfilePage.vue'),
+        },
+
+        {
           path: '403',
           name: 'forbidden',
           component: () => import('@/pages/ForbiddenPage.vue'),
         },
+
+        { path: 'search', redirect: '/' },
       ],
     },
 
