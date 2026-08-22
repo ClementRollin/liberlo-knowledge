@@ -51,7 +51,7 @@ export class SearchService {
 
   async search(
     dto: SearchDto,
-    _requester: Pick<User, 'id' | 'role' | 'serviceId'>,
+    requester: Pick<User, 'id' | 'role' | 'serviceId'>,
   ) {
     const tokens = dto.query
       .toLowerCase()
@@ -74,11 +74,18 @@ export class SearchService {
 
     const serviceSlug = dto.serviceSlug;
 
+    // Non-SUPER_ADMIN n'accèdent pas aux articles marqués INTERNAL (évolution future).
+    const visibilityFilter =
+      requester.role !== 'SUPER_ADMIN'
+        ? { visibility: { not: 'INTERNAL' } }
+        : {};
+
     const [semanticRows, keywordArticles] = await Promise.all([
-      this.semanticSearch(dto.query, serviceSlug),
+      this.semanticSearch(dto.query, serviceSlug, requester.role),
       this.prisma.article.findMany({
         where: {
           status: 'PUBLISHED',
+          ...visibilityFilter,
           OR: [...phraseConditions, ...tokenConditions],
           ...(serviceSlug ? { service: { slug: serviceSlug } } : {}),
         },
@@ -135,10 +142,32 @@ export class SearchService {
   private async semanticSearch(
     query: string,
     serviceSlug?: string,
+    role?: string,
   ): Promise<SemanticRow[]> {
     try {
       const vector = await this.embedding.generateEmbedding(query);
       const pgVector = `[${vector.join(',')}]`;
+
+      // Prisma tagged templates ne permettent pas de fragments SQL dynamiques ;
+      // on branche sur les deux variables pour garder des requêtes paramétrées sûres.
+      const filterInternal = role !== 'SUPER_ADMIN';
+
+      if (serviceSlug && filterInternal) {
+        return this.prisma.$queryRaw<SemanticRow[]>`
+          SELECT a.id, a.title, a.summary, a.content, a.tags,
+            s.id AS service_id, s.name AS service_name, s.slug AS service_slug,
+            u.id AS author_id, u.email AS author_email, a."updatedAt" AS updated_at,
+            1 - (a.embedding <=> ${pgVector}::vector) AS similarity
+          FROM "Article" a
+          JOIN "Service" s ON s.id = a."serviceId"
+          JOIN "User" u ON u.id = a."authorId"
+          WHERE a.status = 'PUBLISHED' AND a.embedding IS NOT NULL
+            AND a.visibility != 'INTERNAL'
+            AND s.slug = ${serviceSlug}
+          ORDER BY a.embedding <=> ${pgVector}::vector
+          LIMIT 15
+        `;
+      }
 
       if (serviceSlug) {
         return this.prisma.$queryRaw<SemanticRow[]>`
@@ -150,6 +179,22 @@ export class SearchService {
           JOIN "Service" s ON s.id = a."serviceId"
           JOIN "User" u ON u.id = a."authorId"
           WHERE a.status = 'PUBLISHED' AND a.embedding IS NOT NULL AND s.slug = ${serviceSlug}
+          ORDER BY a.embedding <=> ${pgVector}::vector
+          LIMIT 15
+        `;
+      }
+
+      if (filterInternal) {
+        return this.prisma.$queryRaw<SemanticRow[]>`
+          SELECT a.id, a.title, a.summary, a.content, a.tags,
+            s.id AS service_id, s.name AS service_name, s.slug AS service_slug,
+            u.id AS author_id, u.email AS author_email, a."updatedAt" AS updated_at,
+            1 - (a.embedding <=> ${pgVector}::vector) AS similarity
+          FROM "Article" a
+          JOIN "Service" s ON s.id = a."serviceId"
+          JOIN "User" u ON u.id = a."authorId"
+          WHERE a.status = 'PUBLISHED' AND a.embedding IS NOT NULL
+            AND a.visibility != 'INTERNAL'
           ORDER BY a.embedding <=> ${pgVector}::vector
           LIMIT 15
         `;
