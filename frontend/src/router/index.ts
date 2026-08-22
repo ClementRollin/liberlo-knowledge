@@ -89,6 +89,8 @@ const router = createRouter({
           name: 'forbidden',
           component: () => import('@/pages/ForbiddenPage.vue'),
         },
+
+        { path: 'search', redirect: '/' },
       ],
     },
 
