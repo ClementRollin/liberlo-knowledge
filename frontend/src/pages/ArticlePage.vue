@@ -30,7 +30,7 @@ watch(() => route.params.id, async (id) => {
   <!-- Maquette Figma : frame "Fiche d'infos" (30:554) -->
   <div class="min-h-full bg-white">
 
-    <div class="max-w-[900px] mx-auto w-full px-8 py-10">
+    <div class="max-w-[900px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
 
       <!-- Retour -->
       <button
@@ -62,7 +62,7 @@ watch(() => route.params.id, async (id) => {
       <template v-else-if="article">
         <!-- Title — Figma: section.title (30:647) -->
         <div class="mb-8">
-          <h1 class="text-4xl font-semibold text-gray-900">{{ article.title }}</h1>
+          <h1 class="text-2xl sm:text-3xl lg:text-4xl font-semibold text-gray-900">{{ article.title }}</h1>
           <hr class="my-6 border-gray-100" />
 
           <!-- Badges — Figma: section.badges (30:649) -->

@@ -43,18 +43,18 @@ const onSubmit = handleSubmit(async (values) => {
   <!-- Maquette Figma : frame "Connexion" (5:5838) -->
   <div class="min-h-screen flex flex-col bg-white">
     <!-- Header -->
-    <header class="px-12 h-[101px] flex items-center border-b border-gray-100">
-      <img :src="logoLiberlo" alt="Liberlo" class="h-[61px] w-[247px] object-contain object-left" />
+    <header class="px-4 sm:px-8 lg:px-12 h-16 sm:h-[101px] flex items-center border-b border-gray-100">
+      <img :src="logoLiberlo" alt="Liberlo" class="h-10 sm:h-[61px] w-auto sm:w-[247px] object-contain object-left" />
     </header>
 
     <!-- Content -->
-    <main class="flex-1 flex items-center justify-center">
-      <div class="w-[1075px] max-w-full px-8">
-        <h1 class="text-5xl font-semibold text-center text-gray-900 mb-12">
+    <main class="flex-1 flex items-center justify-center px-4">
+      <div class="w-full max-w-[1075px]">
+        <h1 class="text-2xl sm:text-4xl lg:text-5xl font-semibold text-center text-gray-900 mb-8 lg:mb-12">
           Bienvenue sur la base de connaissances
         </h1>
 
-        <form @submit="onSubmit" class="max-w-[408px] mx-auto flex flex-col gap-6">
+        <form @submit="onSubmit" class="max-w-[408px] mx-auto flex flex-col gap-4 sm:gap-6">
           <p v-if="error" class="text-red-600 text-sm text-center">{{ error }}</p>
 
           <div>
@@ -63,7 +63,7 @@ const onSubmit = handleSubmit(async (values) => {
               v-model="email"
               type="email"
               placeholder="Adresse e-mail"
-              class="w-full h-[68px] px-9 rounded-2xl border border-gray-200 text-base focus:outline-none focus:border-gray-400"
+              class="w-full h-14 sm:h-[68px] px-5 sm:px-9 rounded-2xl border border-gray-200 text-base focus:outline-none focus:border-gray-400"
             />
             <p v-if="errors.email" class="mt-1 text-sm text-red-500">{{ errors.email }}</p>
           </div>
@@ -74,14 +74,14 @@ const onSubmit = handleSubmit(async (values) => {
               v-model="password"
               type="password"
               placeholder="Mot de passe"
-              class="w-full h-[68px] px-9 rounded-2xl border border-gray-200 text-base focus:outline-none focus:border-gray-400"
+              class="w-full h-14 sm:h-[68px] px-5 sm:px-9 rounded-2xl border border-gray-200 text-base focus:outline-none focus:border-gray-400"
             />
             <p v-if="errors.password" class="mt-1 text-sm text-red-500">{{ errors.password }}</p>
           </div>
 
           <button
             type="submit"
-            class="w-full h-[68px] rounded-2xl bg-gray-900 text-white text-lg font-medium hover:bg-gray-800 transition-colors"
+            class="w-full h-14 sm:h-[68px] rounded-2xl bg-gray-900 text-white text-base sm:text-lg font-medium hover:bg-gray-800 transition-colors"
           >
             Connexion avec e-mail
           </button>

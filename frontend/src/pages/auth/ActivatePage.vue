@@ -39,17 +39,17 @@ const onSubmit = handleSubmit(async (values) => {
 <template>
   <!-- Maquette Figma : frame "Activation compte" (26:509) -->
   <div class="min-h-screen flex flex-col bg-white">
-    <header class="px-12 h-[101px] flex items-center border-b border-gray-100">
-      <img :src="logoLiberlo" alt="Liberlo" class="h-[61px] w-[247px] object-contain object-left" />
+    <header class="px-4 sm:px-8 lg:px-12 h-16 sm:h-[101px] flex items-center border-b border-gray-100">
+      <img :src="logoLiberlo" alt="Liberlo" class="h-10 sm:h-[61px] w-auto sm:w-[247px] object-contain object-left" />
     </header>
 
-    <main class="flex-1 flex items-center justify-center">
-      <div class="w-[1075px] max-w-full px-8">
-        <h1 class="text-5xl font-semibold text-center text-gray-900 mb-12">
+    <main class="flex-1 flex items-center justify-center px-4">
+      <div class="w-full max-w-[1075px]">
+        <h1 class="text-2xl sm:text-4xl lg:text-5xl font-semibold text-center text-gray-900 mb-8 lg:mb-12">
           Activez votre compte
         </h1>
 
-        <form @submit="onSubmit" class="max-w-[408px] mx-auto flex flex-col gap-6">
+        <form @submit="onSubmit" class="max-w-[408px] mx-auto flex flex-col gap-4 sm:gap-6">
           <p class="text-sm text-gray-500">Email : {{ email }}</p>
           <p v-if="error" class="text-red-600 text-sm">{{ error }}</p>
 
@@ -59,7 +59,7 @@ const onSubmit = handleSubmit(async (values) => {
               v-model="password"
               type="password"
               placeholder="Nouveau mot de passe"
-              class="w-full h-[68px] px-9 rounded-2xl border border-gray-200 text-base focus:outline-none focus:border-gray-400"
+              class="w-full h-14 sm:h-[68px] px-5 sm:px-9 rounded-2xl border border-gray-200 text-base focus:outline-none focus:border-gray-400"
             />
             <p v-if="errors.password" class="mt-1 text-sm text-red-500">{{ errors.password }}</p>
           </div>
@@ -70,14 +70,14 @@ const onSubmit = handleSubmit(async (values) => {
               v-model="confirmPassword"
               type="password"
               placeholder="Confirmer le mot de passe"
-              class="w-full h-[68px] px-9 rounded-2xl border border-gray-200 text-base focus:outline-none focus:border-gray-400"
+              class="w-full h-14 sm:h-[68px] px-5 sm:px-9 rounded-2xl border border-gray-200 text-base focus:outline-none focus:border-gray-400"
             />
             <p v-if="errors.confirmPassword" class="mt-1 text-sm text-red-500">{{ errors.confirmPassword }}</p>
           </div>
 
           <button
             type="submit"
-            class="w-full h-[68px] rounded-2xl bg-gray-900 text-white text-lg font-medium hover:bg-gray-800 transition-colors"
+            class="w-full h-14 sm:h-[68px] rounded-2xl bg-gray-900 text-white text-base sm:text-lg font-medium hover:bg-gray-800 transition-colors"
           >
             C'est parti !
           </button>

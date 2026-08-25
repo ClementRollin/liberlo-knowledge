@@ -61,7 +61,7 @@ const serviceIcons: Record<string, string> = {
 
 <template>
   <div class="min-h-full bg-[#fafafa]">
-    <div class="max-w-[1200px] mx-auto w-full px-8 py-10">
+    <div class="max-w-[1200px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
 
       <!-- Header -->
       <div class="mb-10">
@@ -77,7 +77,7 @@ const serviceIcons: Record<string, string> = {
 
       <template v-else>
         <!-- Stats cards -->
-        <div class="grid grid-cols-4 gap-5 mb-10">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5 mb-10">
           <div class="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
             <p class="text-3xl font-bold text-gray-900">{{ stats.total }}</p>
             <p class="text-sm text-gray-400 mt-1">Articles au total</p>
@@ -121,12 +121,12 @@ const serviceIcons: Record<string, string> = {
         </div>
 
         <!-- Table -->
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto">
           <template v-if="loading">
             <div v-for="i in 8" :key="i" class="h-14 bg-gray-50 animate-pulse border-b border-gray-100" />
           </template>
 
-          <table v-else class="w-full text-sm">
+          <table v-else class="w-full text-sm min-w-[640px]">
             <thead>
               <tr class="border-b border-gray-100 bg-gray-50">
                 <th class="text-left px-6 py-4 font-medium text-gray-500 text-xs uppercase tracking-wide">Titre</th>
