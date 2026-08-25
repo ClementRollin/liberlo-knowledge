@@ -7,9 +7,9 @@ export function useAuth() {
   return {
     currentUser: computed(() => authStore.user),
     isAuthenticated: computed(() => authStore.isAuthenticated),
-    isSuperAdmin: computed(() => authStore.user?.role === 'SUPER_ADMIN'),
+    isSuperAdmin: computed(() => authStore.user?.role === 'DIRECTION'),
     isResponsable: computed(() => authStore.user?.role === 'RESPONSABLE'),
-    isCollaborator: computed(() => authStore.user?.role === 'COLLABORATOR'),
+    isCollaborator: computed(() => authStore.user?.role === 'COLLABORATEUR'),
     logout: () => authStore.logout(),
   }
 }

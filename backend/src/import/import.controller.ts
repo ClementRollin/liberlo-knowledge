@@ -20,7 +20,7 @@ import type { User } from '@prisma/client';
 
 @Controller('import')
 @UseGuards(JwtGuard, RolesGuard)
-@Roles('SUPER_ADMIN')
+@Roles('DIRECTION')
 export class ImportController {
   constructor(private readonly importService: ImportService) {}
 

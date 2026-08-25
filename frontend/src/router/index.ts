@@ -64,24 +64,24 @@ const router = createRouter({
           meta: { roles: ['RESPONSABLE'] },
         },
 
-        // SUPER_ADMIN
+        // DIRECTION
         {
           path: 'dashboard/global',
           name: 'dashboard-global',
           component: () => import('@/pages/dashboard/DashboardGlobalPage.vue'),
-          meta: { roles: ['SUPER_ADMIN'] },
+          meta: { roles: ['DIRECTION'] },
         },
         {
           path: 'admin/users',
           name: 'admin-users',
           component: () => import('@/pages/admin/UsersPage.vue'),
-          meta: { roles: ['SUPER_ADMIN'] },
+          meta: { roles: ['DIRECTION'] },
         },
         {
           path: 'admin/import',
           name: 'admin-import',
           component: () => import('@/pages/admin/ImportPage.vue'),
-          meta: { roles: ['SUPER_ADMIN'] },
+          meta: { roles: ['DIRECTION'] },
         },
 
         {

@@ -40,7 +40,7 @@ describe('UsersService', () => {
       mockPrisma.user.findUnique.mockResolvedValue({ id: 'existing' });
 
       await expect(
-        service.createUser({ email: 'exists@liberlo.com', role: Role.COLLABORATOR }),
+        service.createUser({ email: 'exists@liberlo.com', role: Role.COLLABORATEUR }),
       ).rejects.toThrow(ConflictException);
     });
 
@@ -49,7 +49,7 @@ describe('UsersService', () => {
       mockPrisma.user.create.mockResolvedValue({
         id: 'new-id',
         email: 'nouveau@liberlo.com',
-        role: Role.COLLABORATOR,
+        role: Role.COLLABORATEUR,
         serviceId: null,
         isActive: true,
         createdAt: new Date(),
@@ -57,7 +57,7 @@ describe('UsersService', () => {
 
       const result = await service.createUser({
         email: 'nouveau@liberlo.com',
-        role: Role.COLLABORATOR,
+        role: Role.COLLABORATEUR,
       });
 
       expect(result.email).toBe('nouveau@liberlo.com');

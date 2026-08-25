@@ -34,7 +34,7 @@ async function seed(prisma: PrismaService) {
     create: {
       email: 'admin-e2e@liberlo.com',
       passwordHash: hash,
-      role: 'SUPER_ADMIN',
+      role: 'DIRECTION',
       isActive: true,
     },
   });
@@ -69,7 +69,7 @@ async function seed(prisma: PrismaService) {
     create: {
       email: 'collab-e2e@liberlo.com',
       passwordHash: hash,
-      role: 'COLLABORATOR',
+      role: 'COLLABORATEUR',
       serviceId: itService.id,
       isActive: true,
     },
@@ -228,7 +228,7 @@ describe('Liberlo API (e2e)', () => {
       expect(res.body.user.service).toMatchObject({ slug: itServiceSlug });
     });
 
-    it('should return null service for SUPER_ADMIN', async () => {
+    it('should return null service for DIRECTION', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/auth/login')
         .send({ email: 'admin-e2e@liberlo.com', password: 'Test1234!' })
@@ -266,7 +266,7 @@ describe('Liberlo API (e2e)', () => {
         .expect(401);
     });
 
-    it('should return 403 for a COLLABORATOR', () => {
+    it('should return 403 for a COLLABORATEUR', () => {
       return request(app.getHttpServer())
         .post('/api/articles')
         .set('Authorization', `Bearer ${tokens.collaborator}`)
@@ -457,14 +457,14 @@ describe('Liberlo API (e2e)', () => {
         .expect(401);
     });
 
-    it('should return 403 for a COLLABORATOR', () => {
+    it('should return 403 for a COLLABORATEUR', () => {
       return request(app.getHttpServer())
         .get('/api/admin/articles')
         .set('Authorization', `Bearer ${tokens.collaborator}`)
         .expect(403);
     });
 
-    it('should return all articles for SUPER_ADMIN', async () => {
+    it('should return all articles for DIRECTION', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/admin/articles')
         .set('Authorization', `Bearer ${tokens.admin}`)

@@ -141,9 +141,9 @@ async function deleteConv(id: string, e: Event) {
         <span class="text-xs">Mes articles</span>
       </RouterLink>
 
-      <!-- Dashboard global SUPER_ADMIN -->
+      <!-- Dashboard global DIRECTION -->
       <RouterLink
-        v-if="auth.hasRole('SUPER_ADMIN')"
+        v-if="auth.hasRole('DIRECTION')"
         to="/dashboard/global"
         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors"
         :class="route.path === '/dashboard/global'
@@ -157,9 +157,9 @@ async function deleteConv(id: string, e: Event) {
         <span class="text-xs">Dashboard global</span>
       </RouterLink>
 
-      <!-- Gestion utilisateurs SUPER_ADMIN -->
+      <!-- Gestion utilisateurs DIRECTION -->
       <RouterLink
-        v-if="auth.hasRole('SUPER_ADMIN')"
+        v-if="auth.hasRole('DIRECTION')"
         to="/admin/users"
         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors"
         :class="route.path === '/admin/users'
@@ -173,9 +173,9 @@ async function deleteConv(id: string, e: Event) {
         <span class="text-xs">Utilisateurs</span>
       </RouterLink>
 
-      <!-- Import SUPER_ADMIN -->
+      <!-- Import DIRECTION -->
       <RouterLink
-        v-if="auth.hasRole('SUPER_ADMIN')"
+        v-if="auth.hasRole('DIRECTION')"
         to="/admin/import"
         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors"
         :class="route.path === '/admin/import'

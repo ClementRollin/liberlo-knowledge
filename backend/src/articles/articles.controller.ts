@@ -64,7 +64,7 @@ export class ArticlesController {
 
   @Post('reindex')
   @UseGuards(RolesGuard)
-  @Roles('SUPER_ADMIN')
+  @Roles('DIRECTION')
   reindexAll() {
     return this.articlesService.reindexAll();
   }

@@ -74,9 +74,9 @@ export class SearchService {
 
     const serviceSlug = dto.serviceSlug;
 
-    // Non-SUPER_ADMIN n'accèdent pas aux articles marqués INTERNAL (évolution future).
+    // Non-DIRECTION n'accèdent pas aux articles marqués INTERNAL (évolution future).
     const visibilityFilter =
-      requester.role !== 'SUPER_ADMIN'
+      requester.role !== 'DIRECTION'
         ? { visibility: { not: 'INTERNAL' } }
         : {};
 
@@ -150,7 +150,7 @@ export class SearchService {
 
       // Prisma tagged templates ne permettent pas de fragments SQL dynamiques ;
       // on branche sur les deux variables pour garder des requêtes paramétrées sûres.
-      const filterInternal = role !== 'SUPER_ADMIN';
+      const filterInternal = role !== 'DIRECTION';
 
       if (serviceSlug && filterInternal) {
         return this.prisma.$queryRaw<SemanticRow[]>`

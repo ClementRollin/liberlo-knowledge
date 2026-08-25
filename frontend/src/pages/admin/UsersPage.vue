@@ -18,9 +18,9 @@
           class="border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6b2fa0]"
         >
           <option value="">Tous les rôles</option>
-          <option value="COLLABORATOR">Collaborateurs</option>
+          <option value="COLLABORATEUR">Collaborateurs</option>
           <option value="RESPONSABLE">Responsables</option>
-          <option value="SUPER_ADMIN">Super Admin</option>
+          <option value="DIRECTION">Direction</option>
         </select>
       </div>
 
@@ -123,7 +123,7 @@ interface ServiceSummary {
 interface UserItem {
   id: string
   email: string
-  role: 'COLLABORATOR' | 'RESPONSABLE' | 'SUPER_ADMIN'
+  role: 'COLLABORATEUR' | 'RESPONSABLE' | 'DIRECTION'
   isActive: boolean
   createdAt: string
   service: ServiceSummary | null
@@ -140,16 +140,16 @@ const roleFilter = ref('')
 const userToDeactivate = ref<UserItem | null>(null)
 
 const roleLabelByKey: Record<string, string> = {
-  COLLABORATOR: 'Collaborateur',
+  COLLABORATEUR: 'Collaborateur',
   RESPONSABLE: 'Responsable',
-  SUPER_ADMIN: 'Super Admin',
+  DIRECTION: 'Direction',
 }
 
 function roleBadgeClass(role: string) {
   return {
-    'bg-blue-100 text-blue-700': role === 'COLLABORATOR',
+    'bg-blue-100 text-blue-700': role === 'COLLABORATEUR',
     'bg-purple-100 text-purple-700': role === 'RESPONSABLE',
-    'bg-gray-800 text-white': role === 'SUPER_ADMIN',
+    'bg-gray-800 text-white': role === 'DIRECTION',
   }
 }
 
