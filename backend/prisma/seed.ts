@@ -410,6 +410,15 @@ const ARTICLES: {
     status: 'PUBLISHED',
   },
 
+  {
+    title: 'Gestion des paies — bulletins et virements salariaux',
+    summary: 'Processus mensuel de traitement des paies, émission des bulletins et virement des salaires chez Liberlo.',
+    content: `## Calendrier de paie\n\nLe paiement des salaires intervient le **28 de chaque mois** (ou le vendredi précédent si le 28 est un week-end ou férié).\n\n## Processus mensuel\n\n1. **J-10** — Les managers transmettent à RH les variables de paie (absences, heures sup', primes)\n2. **J-7** — RH vérifie les éléments variables dans Payfit et génère un pré-calcul\n3. **J-5** — Validation du pré-calcul par le directeur financier\n4. **J-3** — Édition des bulletins de paie dans Payfit, vérification des montants nets\n5. **J-1** — Ordre de virement envoyé à la banque (Qonto)\n6. **Jour J** — Virement des salaires effectif ; les bulletins de paie sont disponibles dans l'espace Payfit de chaque collaborateur\n\n## Accès aux bulletins de paie\n\nChaque collaborateur peut télécharger ses bulletins de paie dans Payfit → Mon espace → Bulletins de paie.\nLes bulletins sont archivés 5 ans sur la plateforme.\n\n## Éléments variables récurrents\n\n- Absences maladie (arrêt de travail transmis à rh@liberlo.com)\n- Congés payés posés dans Payfit\n- Heures supplémentaires déclarées par le manager\n- Primes exceptionnelles ou de cooptation validées par la Direction\n\n## En cas d'erreur sur la paie\n\nContacter rh@liberlo.com immédiatement. Une régularisation est effectuée sur la paie du mois suivant ou, en cas d'urgence, par virement complémentaire.\n\n## Charges sociales\n\nLes déclarations sociales nominatives (DSN) sont soumises automatiquement par Payfit chaque mois avant le 15.`,
+    tags: ['paie', 'paies', 'salaire', 'bulletin de paie', 'virement', 'paiement des salaires', 'payfit', 'rh'],
+    service: 'rh',
+    status: 'PUBLISHED',
+  },
+
   // ── Direction ────────────────────────────────────────────────────────────────
   {
     title: 'Objectifs stratégiques 2026 — OKR Q3',
