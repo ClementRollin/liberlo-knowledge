@@ -1,4 +1,4 @@
-export type Role = 'COLLABORATOR' | 'RESPONSABLE' | 'SUPER_ADMIN'
+export type Role = 'COLLABORATEUR' | 'RESPONSABLE' | 'DIRECTION'
 
 export interface User {
   id: string
