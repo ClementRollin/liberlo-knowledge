@@ -5,7 +5,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 @UseGuards(JwtGuard, RolesGuard)
-@Roles('SUPER_ADMIN')
+@Roles('DIRECTION')
 @Controller('admin')
 export class AdminController {
   constructor(private articlesService: ArticlesService) {}

@@ -11,9 +11,9 @@ datasource db {
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 enum Role {
-  COLLABORATOR
+  COLLABORATEUR
   RESPONSABLE
-  SUPER_ADMIN
+  DIRECTION
 }
 
 enum ArticleStatus {
@@ -32,7 +32,7 @@ model User {
   id              String   @id @default(uuid())
   email           String   @unique
   passwordHash    String
-  role            Role     @default(COLLABORATOR)
+  role            Role     @default(COLLABORATEUR)
   serviceId       String?
   isActive        Boolean  @default(false)
   activationToken String?  @unique

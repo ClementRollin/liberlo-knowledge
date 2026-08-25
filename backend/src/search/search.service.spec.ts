@@ -19,13 +19,13 @@ const mockEmbeddingService = {
 
 const requesterCollaborator: Pick<User, 'id' | 'role' | 'serviceId'> = {
   id: 'user-1',
-  role: 'COLLABORATOR',
+  role: 'COLLABORATEUR',
   serviceId: null,
 };
 
 const requesterAdmin: Pick<User, 'id' | 'role' | 'serviceId'> = {
   id: 'user-2',
-  role: 'SUPER_ADMIN',
+  role: 'DIRECTION',
   serviceId: null,
 };
 
@@ -78,7 +78,7 @@ describe('SearchService', () => {
       expect(results[0].id).toBe('art-1');
     });
 
-    it('should not filter INTERNAL visibility for SUPER_ADMIN', async () => {
+    it('should not filter INTERNAL visibility for DIRECTION', async () => {
       mockPrisma.article.findMany.mockResolvedValue([]);
       mockPrisma.$queryRaw.mockResolvedValue([]);
 
