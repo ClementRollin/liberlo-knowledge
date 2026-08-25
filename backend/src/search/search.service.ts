@@ -104,6 +104,14 @@ export class SearchService {
       }),
     ]);
 
+    const applyServiceBoost = (score: number, articleServiceId: string) => {
+      // Boost articles from the requester's own service to surface relevant content first
+      if (requester.serviceId && requester.serviceId === articleServiceId) {
+        return Math.round(score * 1.5);
+      }
+      return score;
+    };
+
     const semanticResults = semanticRows.map((r) => ({
       id: r.id,
       title: r.title,
@@ -113,7 +121,7 @@ export class SearchService {
       service: { id: r.service_id, name: r.service_name, slug: r.service_slug },
       author: { id: r.author_id, email: r.author_email },
       updatedAt: r.updated_at,
-      score: Math.round(r.similarity * 10),
+      score: applyServiceBoost(Math.round(r.similarity * 15), r.service_id),
     }));
 
     const query = dto.query.toLowerCase();
@@ -123,17 +131,19 @@ export class SearchService {
       let score = 0;
       if (text.includes(query)) score += 10;
       for (const token of tokens) {
-        if (r.title.toLowerCase().includes(token)) score += 3;
-        else if (text.includes(token)) score += 1;
+        if (r.title.toLowerCase().includes(token)) score += 5;
+        else if (r.tags.some((t) => t.toLowerCase().includes(token))) score += 4;
+        else if (text.includes(token)) score += 2;
       }
-      return { ...r, score };
+      return { ...r, score: applyServiceBoost(score, r.service.id) };
     });
 
-    const relevantSemantic = semanticResults.filter((r) => r.score > 0);
+    // Minimum score of 3 avoids returning tangentially-related articles on weak matches
+    const relevantSemantic = semanticResults.filter((r) => r.score >= 3);
     const seen = new Set(relevantSemantic.map((r) => r.id));
     const merged = [
       ...relevantSemantic,
-      ...keywordResults.filter((r) => r.score > 0 && !seen.has(r.id)),
+      ...keywordResults.filter((r) => r.score >= 3 && !seen.has(r.id)),
     ].sort((a, b) => b.score - a.score);
 
     return merged.slice(0, 20);
@@ -164,7 +174,7 @@ export class SearchService {
           WHERE a.status = 'PUBLISHED' AND a.embedding IS NOT NULL
             AND a.visibility != 'INTERNAL'
             AND s.slug = ${serviceSlug}
-            AND a.embedding <=> ${pgVector}::vector < 0.9
+            AND a.embedding <=> ${pgVector}::vector < 0.55
           ORDER BY a.embedding <=> ${pgVector}::vector
           LIMIT 15
         `;
@@ -180,7 +190,7 @@ export class SearchService {
           JOIN "Service" s ON s.id = a."serviceId"
           JOIN "User" u ON u.id = a."authorId"
           WHERE a.status = 'PUBLISHED' AND a.embedding IS NOT NULL AND s.slug = ${serviceSlug}
-            AND a.embedding <=> ${pgVector}::vector < 0.9
+            AND a.embedding <=> ${pgVector}::vector < 0.55
           ORDER BY a.embedding <=> ${pgVector}::vector
           LIMIT 15
         `;
@@ -197,7 +207,7 @@ export class SearchService {
           JOIN "User" u ON u.id = a."authorId"
           WHERE a.status = 'PUBLISHED' AND a.embedding IS NOT NULL
             AND a.visibility != 'INTERNAL'
-            AND a.embedding <=> ${pgVector}::vector < 0.9
+            AND a.embedding <=> ${pgVector}::vector < 0.55
           ORDER BY a.embedding <=> ${pgVector}::vector
           LIMIT 15
         `;
@@ -212,7 +222,7 @@ export class SearchService {
         JOIN "Service" s ON s.id = a."serviceId"
         JOIN "User" u ON u.id = a."authorId"
         WHERE a.status = 'PUBLISHED' AND a.embedding IS NOT NULL
-          AND a.embedding <=> ${pgVector}::vector < 0.9
+          AND a.embedding <=> ${pgVector}::vector < 0.55
         ORDER BY a.embedding <=> ${pgVector}::vector
         LIMIT 15
       `;
