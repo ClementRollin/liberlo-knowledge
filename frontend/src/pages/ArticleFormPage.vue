@@ -63,7 +63,7 @@ async function save() {
 
 <template>
   <div class="min-h-full bg-[#fafafa]">
-    <div class="max-w-[900px] mx-auto w-full px-8 py-10">
+    <div class="max-w-[900px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
 
       <!-- Header -->
       <div class="flex items-center justify-between mb-8">
@@ -137,7 +137,7 @@ async function save() {
         </div>
 
         <!-- Tags + statut -->
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex gap-6">
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col sm:flex-row gap-4 sm:gap-6">
           <div class="flex-1">
             <label class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2 block">Tags</label>
             <input

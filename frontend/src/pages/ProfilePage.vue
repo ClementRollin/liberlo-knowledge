@@ -15,8 +15,8 @@ const showPasswordInfo = ref(false)
 
 <template>
   <div class="min-h-full bg-white">
-    <div class="px-12 py-10 max-w-2xl">
-      <h1 class="text-4xl font-semibold text-gray-900 mb-2">Mon profil</h1>
+    <div class="px-4 sm:px-6 lg:px-12 py-6 lg:py-10 max-w-2xl">
+      <h1 class="text-2xl sm:text-4xl font-semibold text-gray-900 mb-2">Mon profil</h1>
       <p class="text-gray-400 text-sm mb-10">Informations de votre compte (lecture seule)</p>
 
       <div class="space-y-6">
