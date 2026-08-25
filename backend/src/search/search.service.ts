@@ -142,8 +142,14 @@ export class SearchService {
       return { ...r, score: applyServiceBoost(score, r.service.id) };
     });
 
-    // Minimum score of 5: requires at least one title-token match or a phrase hit
+    // Minimum score of 5: requires at least one title-token match or a phrase hit.
+    // For articles in both sets, keep the higher of semantic vs keyword score.
     const relevantSemantic = semanticResults.filter((r) => r.score >= 5);
+    const semanticById = new Map(relevantSemantic.map((r) => [r.id, r]));
+    for (const kw of keywordResults) {
+      const sem = semanticById.get(kw.id);
+      if (sem && kw.score > sem.score) sem.score = kw.score;
+    }
     const seen = new Set(relevantSemantic.map((r) => r.id));
     const merged = [
       ...relevantSemantic,
