@@ -64,7 +64,7 @@ function formatDate(iso: string) {
 
     <!-- Messages -->
     <div v-else-if="conversation" class="flex-1 overflow-y-auto">
-      <div class="max-w-3xl mx-auto px-6 py-8 space-y-8">
+      <div class="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
 
         <div v-for="msg in conversation.messages" :key="msg.id">
 
@@ -137,7 +137,7 @@ function formatDate(iso: string) {
     </div>
 
     <!-- Input de message (fixed en bas) -->
-    <div class="border-t border-gray-100 bg-white px-6 py-4">
+    <div class="border-t border-gray-100 bg-white px-4 sm:px-6 py-4">
       <div class="max-w-3xl mx-auto">
         <form @submit.prevent="send" class="flex items-center gap-3 border border-gray-200 rounded-2xl px-4 py-3 focus-within:border-[#6b2fa0] focus-within:shadow-[0_0_0_3px_rgba(107,47,160,0.08)] transition-all">
           <input

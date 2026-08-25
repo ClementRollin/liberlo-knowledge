@@ -40,7 +40,7 @@ const html = computed(() => marked(props.content) as string)
   font-size: 0.875rem;
 }
 .prose pre code { background: transparent; color: inherit; padding: 0; }
-.prose table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+.prose table { display: block; width: 100%; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
 .prose th { background: #f9fafb; font-weight: 600; text-align: left; padding: 0.6rem 0.75rem; border-bottom: 2px solid #e5e7eb; }
 .prose td { padding: 0.6rem 0.75rem; border-bottom: 1px solid #f3f4f6; }
 .prose tr:hover td { background: #fafafa; }

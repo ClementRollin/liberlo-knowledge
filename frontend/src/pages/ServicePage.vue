@@ -41,7 +41,7 @@ watch(() => route.params.slug, (slug) => load(slug as string), { immediate: true
 <template>
   <!-- Maquette Figma : frame "Recherche par service" (31:644) -->
   <div class="min-h-full bg-white">
-    <div class="px-12 py-10">
+    <div class="px-4 sm:px-6 lg:px-12 py-6 lg:py-10">
       <RouterLink to="/" class="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-gray-700 transition-colors mb-8">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -70,7 +70,7 @@ watch(() => route.params.slug, (slug) => load(slug as string), { immediate: true
 
       <!-- Articles grid — Figma: section.listArticle -->
       <template v-else>
-        <div class="grid grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <RouterLink
             v-for="article in paginated"
             :key="article.id"

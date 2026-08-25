@@ -37,14 +37,14 @@ onMounted(async () => {
 <template>
   <!-- Dashboard RESPONSABLE — route /dashboard -->
   <div class="min-h-full bg-white">
-    <div class="px-12 py-10">
-      <div class="flex items-center justify-between mb-8">
-        <h1 class="text-2xl font-semibold text-gray-900">
+    <div class="px-4 sm:px-6 lg:px-12 py-6 lg:py-10">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <h1 class="text-xl sm:text-2xl font-semibold text-gray-900">
           Mes articles<span v-if="serviceName"> — {{ serviceName }}</span>
         </h1>
         <RouterLink
           to="/dashboard/new"
-          class="px-6 py-3 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors"
+          class="self-start sm:self-auto px-5 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors"
         >
           + Nouvel article
         </RouterLink>
@@ -60,7 +60,8 @@ onMounted(async () => {
       </div>
 
       <template v-else>
-        <table class="w-full text-sm">
+        <div class="overflow-x-auto rounded-xl border border-gray-100">
+        <table class="w-full text-sm min-w-[540px]">
           <thead>
             <tr class="border-b border-gray-100 text-left text-gray-500">
               <th class="pb-3 font-medium">Titre</th>
@@ -90,6 +91,8 @@ onMounted(async () => {
             </tr>
           </tbody>
         </table>
+
+        </div>
 
         <p v-if="articles.length === 0" class="text-center text-gray-400 py-12">
           Aucun article pour votre service.

@@ -4,6 +4,9 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useConversationsStore } from '@/stores/conversations'
 
+defineProps<{ isOpen: boolean }>()
+defineEmits<{ close: [] }>()
+
 const auth = useAuthStore()
 const convsStore = useConversationsStore()
 const router = useRouter()
@@ -49,12 +52,27 @@ async function deleteConv(id: string, e: Event) {
 </script>
 
 <template>
-  <aside class="w-64 shrink-0 flex flex-col h-screen bg-[#140730] overflow-hidden select-none">
+  <aside
+    class="fixed inset-y-0 left-0 z-50 w-64 flex flex-col h-screen bg-[#140730] overflow-hidden select-none
+           transform transition-transform duration-300 ease-in-out
+           lg:relative lg:translate-x-0 lg:z-auto"
+    :class="isOpen ? 'translate-x-0' : '-translate-x-full'"
+  >
 
     <!-- En-tête -->
     <div class="px-3 pt-5 pb-2">
-      <div class="px-2 mb-3">
+      <div class="px-2 mb-3 flex items-center justify-between">
         <span class="text-white/90 font-semibold text-sm tracking-wide">Liberlo KB</span>
+        <!-- Bouton fermer (mobile seulement) -->
+        <button
+          class="lg:hidden p-1 rounded text-white/40 hover:text-white/80 transition-colors"
+          @click="$emit('close')"
+          aria-label="Fermer le menu"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
       <RouterLink
         to="/"

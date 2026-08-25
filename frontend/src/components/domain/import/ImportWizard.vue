@@ -40,7 +40,7 @@
     <template v-if="step === 0">
       <h2 class="text-lg font-semibold text-gray-900 mb-6">Choisir la source</h2>
 
-      <div class="grid grid-cols-2 gap-4 mb-8">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
         <!-- Google Drive -->
         <button
           class="group border-2 rounded-2xl p-6 text-left transition-all"
@@ -215,8 +215,8 @@
     <template v-else-if="step === 2">
       <h2 class="text-lg font-semibold text-gray-900 mb-6">Vérifier les suggestions</h2>
 
-      <div class="border border-gray-200 rounded-2xl overflow-hidden mb-6">
-        <table class="w-full text-sm">
+      <div class="border border-gray-200 rounded-2xl overflow-x-auto mb-6">
+        <table class="w-full text-sm min-w-[640px]">
           <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
               <th class="text-left px-4 py-3 text-gray-500 font-medium">Titre</th>

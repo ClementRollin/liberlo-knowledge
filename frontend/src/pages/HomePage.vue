@@ -35,8 +35,8 @@ const services = [
   <div class="flex flex-col items-center pb-16 min-h-full">
 
     <!-- Titre -->
-    <div class="flex flex-col items-center mt-[120px] gap-4 max-w-[560px] px-6 text-center">
-      <h1 class="text-5xl font-semibold text-gray-900 leading-tight tracking-tight">
+    <div class="flex flex-col items-center mt-16 lg:mt-[120px] gap-4 max-w-[560px] px-6 text-center">
+      <h1 class="text-3xl sm:text-4xl lg:text-5xl font-semibold text-gray-900 leading-tight tracking-tight">
         Que cherchez-vous ?
       </h1>
       <p class="text-gray-400 text-lg">
@@ -75,7 +75,7 @@ const services = [
       <p class="text-xs font-semibold uppercase tracking-widest text-gray-300 text-center mb-8">
         Parcourir par service
       </p>
-      <div class="grid grid-cols-3 gap-5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         <RouterLink
           v-for="service in services"
           :key="service.slug"

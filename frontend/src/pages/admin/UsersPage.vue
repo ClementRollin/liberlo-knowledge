@@ -1,10 +1,10 @@
 <template>
   <div class="min-h-full bg-white">
-    <div class="px-12 py-10">
-      <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-semibold text-gray-900">Gestion des utilisateurs</h1>
+    <div class="px-4 sm:px-6 lg:px-12 py-6 lg:py-10">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <h1 class="text-xl sm:text-2xl font-semibold text-gray-900">Gestion des utilisateurs</h1>
         <button
-          class="bg-[#6b2fa0] text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-purple-800 transition-colors"
+          class="self-start sm:self-auto bg-[#6b2fa0] text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-purple-800 transition-colors"
           @click="isDrawerOpen = true"
         >
           + Créer un utilisateur
@@ -38,8 +38,8 @@
       />
 
       <!-- Tableau -->
-      <div v-else class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-        <table class="w-full text-sm">
+      <div v-else class="bg-white rounded-2xl border border-gray-200 overflow-x-auto">
+        <table class="w-full text-sm min-w-[600px]">
           <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
               <th class="text-left px-5 py-3.5 text-gray-500 font-medium">Email</th>
