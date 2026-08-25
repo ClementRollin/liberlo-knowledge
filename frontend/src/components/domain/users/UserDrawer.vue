@@ -41,9 +41,9 @@
                 class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#6b2fa0]"
               >
                 <option value="" disabled>Choisir un rôle</option>
-                <option value="COLLABORATOR">Collaborateur</option>
+                <option value="COLLABORATEUR">Collaborateur</option>
                 <option value="RESPONSABLE">Responsable de service</option>
-                <option value="SUPER_ADMIN">Super Admin</option>
+                <option value="DIRECTION">Direction</option>
               </select>
             </div>
 

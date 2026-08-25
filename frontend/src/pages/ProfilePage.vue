@@ -5,9 +5,9 @@ import { useAuthStore } from '@/stores/auth'
 const auth = useAuthStore()
 
 const roleLabels: Record<string, string> = {
-  COLLABORATOR: 'Collaborateur',
+  COLLABORATEUR: 'Collaborateur',
   RESPONSABLE: 'Responsable de service',
-  SUPER_ADMIN: 'Super Administrateur',
+  DIRECTION: 'Direction',
 }
 
 const showPasswordInfo = ref(false)

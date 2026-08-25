@@ -716,7 +716,7 @@ async function main() {
     create: {
       email: 'ceo@liberlo.com',
       passwordHash: demoPasswordHash,
-      role: 'SUPER_ADMIN',
+      role: 'DIRECTION',
       isActive: true,
     },
   })
@@ -771,7 +771,7 @@ async function main() {
       create: {
         email: c.email,
         passwordHash: demoPasswordHash,
-        role: 'COLLABORATOR',
+        role: 'COLLABORATEUR',
         serviceId: serviceMap[c.service],
         isActive: true,
       },
@@ -879,7 +879,7 @@ async function main() {
   console.log('✅ Seed terminé.')
   console.log('')
   console.log('Comptes (mot de passe : Liberlo2026!) :')
-  console.log('  SUPER_ADMIN   : ceo@liberlo.com')
+  console.log('  DIRECTION     : ceo@liberlo.com')
   console.log('  RESPONSABLE IT: marc.dupont@liberlo.com')
   console.log('  COLLABO IT    : alex.petit@liberlo.com')
   console.log('  COLLABO CSM   : leo.garnier@liberlo.com')

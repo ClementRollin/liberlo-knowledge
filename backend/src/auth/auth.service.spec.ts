@@ -18,7 +18,7 @@ const activeUser = {
   id: 'user-1',
   email: 'alex@liberlo.com',
   passwordHash: HASH,
-  role: 'COLLABORATOR' as const,
+  role: 'COLLABORATEUR' as const,
   serviceId: 'svc-it',
   isActive: true,
   activationToken: null,
@@ -54,7 +54,7 @@ describe('AuthService', () => {
 
       expect(result.access_token).toBe('mock.jwt.token');
       expect(result.user.id).toBe('user-1');
-      expect(result.user.role).toBe('COLLABORATOR');
+      expect(result.user.role).toBe('COLLABORATEUR');
     });
 
     it('should include service info when user belongs to a service', async () => {
